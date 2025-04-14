@@ -1,0 +1,33 @@
+# Global settings for all user agents
+User-agent: *
+Disallow: /private/  # Disallow access to private directories
+Disallow: /temp/     # Disallow access to temporary files
+Disallow: /admin/    # Disallow access to admin areas
+Disallow: /login/    # Disallow access to login pages
+Disallow: /register/ # Disallow access to registration pages
+Disallow: /search    # Disallow search results pages
+
+# Allow specific resources
+Allow: /public/      # Allow access to public resources
+Allow: /static/      # Allow access to static files
+
+# Sitemap location
+Sitemap: https://devexplained.vercel.app/sitemap.xml
+
+# Crawl-delay directive (optional, not all crawlers respect this)
+# Crawl-delay: 10
+
+# Specific rules for Googlebot
+User-agent: Googlebot
+Disallow: /no-google/ # Disallow Googlebot from accessing specific areas
+
+# Specific rules for Bingbot
+User-agent: Bingbot
+Disallow: /no-bing/   # Disallow Bingbot from accessing specific areas
+
+# Block specific bots
+User-agent: BadBot
+Disallow: /
+
+# Additional directives (optional)
+# Host: devexplained.vercel.app

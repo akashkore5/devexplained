@@ -11,6 +11,19 @@ import hljs from "highlight.js";
 import "highlight.js/styles/github-dark.css";
 import { motion } from "framer-motion";
 import Layout from "../../components/Layout";
+import { useRouter } from "next/router";
+import Head from "next/head";
+import DOMPurify from "dompurify";
+
+// Configure DOMPurify for server-side rendering
+let purify;
+if (typeof window === "undefined") {
+  const { JSDOM } = require("jsdom");
+  const jsdomWindow = new JSDOM("").window;
+  purify = DOMPurify(jsdomWindow);
+} else {
+  purify = DOMPurify;
+}
 
 // Error Boundary Component
 class ErrorBoundary extends Component {
@@ -75,6 +88,12 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
   const [activeTab, setActiveTab] = useState("java");
   const [copyIcon, setCopyIcon] = useState("copy");
   const codeRef = useRef(null);
+  const router = useRouter();
+
+  // Sanitize HTML content
+  const sanitizedContentHtml = useMemo(() => {
+    return purify.sanitize(contentHtml, { USE_PROFILES: { html: true } });
+  }, [contentHtml]);
 
   // Highlight code
   useEffect(() => {
@@ -126,40 +145,115 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
   };
 
+  // Structured data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: `${frontMatter.id}. ${frontMatter.title || "Leetcode Solution"}`,
+    description: `Detailed solution for Leetcode problem ${frontMatter.title || "Untitled Problem"} with explanations and code in Java, C++, and Python.`,
+    keywords: `Leetcode, ${frontMatter.title}, coding, algorithms, ${frontMatter.difficulty || "programming"}, Java, C++, Python, coding interview`,
+    author: {
+      "@type": "Organization",
+      name: "LeetcodeSolve Team",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "LeetcodeSolve",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://devexplained.vercel.app/logo.png",
+      },
+    },
+    datePublished: frontMatter.date || new Date().toISOString(),
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `https://devexplained.vercel.app/leetcode/${frontMatter.id}`,
+    },
+    image: "https://devexplained.vercel.app/og-image.jpg",
+  };
+
   return (
     <Layout>
+      <Head>
+        <title>{`${frontMatter.id}. ${frontMatter.title || "Leetcode Solution"} - LeetcodeSolve`}</title>
+        <meta
+          name="description"
+          content={`Master the ${frontMatter.title || "Leetcode problem"} with detailed solutions in Java, C++, and Python. Includes explanations, complexity analysis, and interview tips.`}
+        />
+        <meta
+          name="keywords"
+          content={`Leetcode, ${frontMatter.title}, ${frontMatter.difficulty || "programming"}, Java, C++, Python, algorithms, data structures, coding interview, Leetcode solution`}
+        />
+        <meta name="author" content="LeetcodeSolve Team" />
+        <meta name="robots" content="index, follow" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+          property="og:title"
+          content={`${frontMatter.id}. ${frontMatter.title || "Leetcode Solution"} - LeetcodeSolve`}
+        />
+        <meta
+          property="og:description"
+          content={`Detailed solution for Leetcode problem ${frontMatter.title || "Untitled Problem"} with code in Java, C++, and Python, plus expert explanations.`}
+        />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={`https://devexplained.vercel.app/leetcode/${frontMatter.id}`} />
+        <meta property="og:image" content="https://devexplained.vercel.app/og-image.jpg" />
+        <meta property="og:image:alt" content={`Leetcode ${frontMatter.title} solution preview`} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta
+          name="twitter:title"
+          content={`${frontMatter.id}. ${frontMatter.title || "Leetcode Solution"} - LeetcodeSolve`}
+        />
+        <meta
+          name="twitter:description"
+          content={`Learn how to solve Leetcode's ${frontMatter.title || "problem"} with our expert solutions in Java, C++, and Python.`}
+        />
+        <meta name="twitter:image" content="https://devexplained.vercel.app/twitter-image.jpg" />
+        <meta name="twitter:image:alt" content={`Leetcode ${frontMatter.title} solution preview`} />
+        <link rel="canonical" href={`https://devexplained.vercel.app/leetcode/${frontMatter.id}`} />
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="theme-color" content="#4f46e5" />
+        <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="google-site-verification" content="your-google-verification-code" />
+        <meta name="bing-site-verification" content="your-bing-verification-code" />
+        <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
+      </Head>
       <Toaster />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <article className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Problem Header */}
-        <motion.div
+        <motion.header
           variants={sectionVariants}
           initial="hidden"
           animate="visible"
           className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 sm:p-8 mb-6"
         >
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">
-            {frontMatter.title || "Untitled Problem"}
+            {frontMatter.id}. {frontMatter.title || "Untitled Problem"}
           </h1>
           <div className="flex items-center gap-4 flex-wrap">
-            <span
-              className={`px-3 py-1 rounded-full text-sm font-medium ${difficultyStyle}`}
+            <button
+              onClick={() => router.push(`/leetcode?difficulty=${frontMatter.difficulty}`)}
+              className={`px-3 py-1 rounded-full text-sm font-medium ${difficultyStyle} cursor-pointer`}
+              aria-label={`Filter by ${frontMatter.difficulty} difficulty`}
             >
               {frontMatter.difficulty || "Unknown"}
-            </span>
+            </button>
             {frontMatter.tags?.map((tag) => (
               <Link
                 key={tag}
                 href={`/leetcode/tags/${tag}`}
                 className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded-full text-sm hover:bg-gray-200 dark:hover:bg-slate-600 transition"
+                prefetch={false}
               >
                 {tag}
               </Link>
             ))}
           </div>
-        </motion.div>
+        </motion.header>
 
         {/* Problem Explanation */}
-        <motion.div
+        <motion.section
           variants={sectionVariants}
           initial="hidden"
           animate="visible"
@@ -168,19 +262,20 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
         >
           <div
             className="prose prose-gray dark:prose-invert max-w-none text-gray-700 dark:text-gray-200"
-            dangerouslySetInnerHTML={{ __html: contentHtml || "<p>No explanation available.</p>" }}
+            dangerouslySetInnerHTML={{ __html: sanitizedContentHtml || "<p>No explanation available.</p>" }}
+            aria-label="Problem explanation"
           />
-        </motion.div>
+        </motion.section>
 
         {/* Solutions */}
-        <motion.div
+        <motion.section
           variants={sectionVariants}
           initial="hidden"
           animate="visible"
           transition={{ delay: 0.4 }}
           className="bg-white dark:bg-slate-800 rounded-xl shadow-md"
         >
-          <div className="border-b border-gray-200 dark:border-slate-700">
+          <nav className="border-b border-gray-200 dark:border-slate-700">
             <div className="flex" role="tablist" aria-label="Programming languages">
               {["java", "cpp", "python"].map((lang) => (
                 <button
@@ -200,9 +295,9 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
                 </button>
               ))}
             </div>
-          </div>
+          </nav>
 
-          <div className="p-4 sm:p-6">
+          <div className="p-0 sm:p-2">
             <ErrorBoundary>
               {codeBlocks[activeTab] ? (
                 <div className="relative group">
@@ -261,8 +356,8 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
               )}
             </ErrorBoundary>
           </div>
-        </motion.div>
-      </div>
+        </motion.section>
+      </article>
     </Layout>
   );
 });

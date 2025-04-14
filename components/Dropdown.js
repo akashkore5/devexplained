@@ -2,24 +2,6 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import PropTypes from "prop-types";
 
-/**
- * A production-ready dropdown component with smooth animations, accessibility, and customization.
- * @param {Object} props
- * @param {Array<string|Object>} props.options - Array of options (strings or objects with value/label).
- * @param {string} props.value - Selected value.
- * @param {(value: string) => void} props.onChange - Callback for value changes.
- * @param {string} [props.label="Select an option"] - Accessibility label.
- * @param {string} [props.placeholder="Select..."] - Placeholder when no value is selected.
- * @param {string} [props.className=""] - Container classes.
- * @param {string} [props.buttonClassName=""] - Button classes.
- * @param {string} [props.menuClassName=""] - Menu classes.
- * @param {number} [props.maxDisplayLength=40] - Max chars before truncation.
- * @param {boolean} [props.disabled=false] - Disable the dropdown.
- * @param {boolean} [props.loading=false] - Show loading state.
- * @param {boolean} [props.clearable=false] - Allow clearing the value.
- * @param {string} [props.size="md"] - Size variant (sm, md, lg).
- * @param {string} [props.placement="bottom"] - Menu placement (top, bottom).
- */
 export default function Dropdown({
   options = [],
   value = "",
@@ -41,7 +23,6 @@ export default function Dropdown({
   const buttonRef = useRef(null);
   const [focusedIndex, setFocusedIndex] = useState(-1);
 
-  // Normalize options to handle strings or objects
   const normalizedOptions = useMemo(() => {
     const uniqueOptions = Array.from(new Set(options.map(opt => JSON.stringify(opt))))
       .map(str => JSON.parse(str));
@@ -50,7 +31,6 @@ export default function Dropdown({
     );
   }, [options]);
 
-  // Close on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -62,10 +42,8 @@ export default function Dropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Respect reduced motion preference
   const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // Animation variants
   const menuVariants = {
     open: {
       opacity: 1,
@@ -86,7 +64,6 @@ export default function Dropdown({
     closed: { opacity: 0, y: -5, transition: prefersReducedMotion ? {} : { duration: 0.1 } },
   };
 
-  // Handlers
   const handleSelect = useCallback(
     (optionValue) => {
       onChange(optionValue);
@@ -100,7 +77,6 @@ export default function Dropdown({
   const handleClear = useCallback(
     (e) => {
       e.stopPropagation();
-      // Reset to "All" if options include it, else ""
       const resetValue = normalizedOptions.some(opt => opt.value === "All") ? "All" : "";
       onChange(resetValue);
       setIsOpen(false);
@@ -150,7 +126,6 @@ export default function Dropdown({
     [isOpen, normalizedOptions, focusedIndex, handleSelect, disabled, loading]
   );
 
-  // Display value
   const displayValue = useMemo(() => {
     if (loading) return "Loading...";
     const selectedOption = normalizedOptions.find((opt) => opt.value === value);
@@ -158,14 +133,12 @@ export default function Dropdown({
     return label.length > maxDisplayLength ? `${label.slice(0, maxDisplayLength - 3)}...` : label;
   }, [value, normalizedOptions, placeholder, maxDisplayLength, loading]);
 
-  // Size classes
   const sizeClasses = {
     sm: "px-3 py-1.5 text-sm",
     md: "px-4 py-2 text-sm",
     lg: "px-5 py-3 text-base",
   };
 
-  // Menu positioning
   const placementClasses = placement === "top" ? "bottom-full mb-1" : "top-full mt-1";
 
   return (
@@ -175,7 +148,7 @@ export default function Dropdown({
       onKeyDown={handleKeyDown}
       aria-busy={loading}
     >
-      <button
+      <div
         ref={buttonRef}
         onClick={() => !disabled && !loading && setIsOpen(!isOpen)}
         className={`
@@ -190,20 +163,20 @@ export default function Dropdown({
         aria-expanded={isOpen}
         aria-controls={isOpen ? `dropdown-menu-${label.replace(/\s+/g, "-").toLowerCase()}` : undefined}
         role="combobox"
-        disabled={disabled || loading}
+        tabIndex={0}
       >
         <span className="whitespace-nowrap truncate">{displayValue}</span>
         <div className="flex items-center ml-2 space-x-2">
           {clearable && value && !loading && (
-            <button
+            <span
               onClick={handleClear}
-              className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
+              className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none cursor-pointer"
               aria-label="Clear selection"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </span>
           )}
           {loading ? (
             <svg className="w-4 h-4 animate-spin text-indigo-600" fill="none" viewBox="0 0 24 24">
@@ -221,7 +194,7 @@ export default function Dropdown({
             </svg>
           )}
         </div>
-      </button>
+      </div>
       <AnimatePresence>
         {isOpen && (
           <motion.ul

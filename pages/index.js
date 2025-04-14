@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import Layout from "../components/Layout";
+import Head from "next/head";
 
 export default function Home() {
   // Animation variants
@@ -9,8 +10,64 @@ export default function Home() {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
   };
 
+  // Structured data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "LeetcodeSolve",
+    url: "https://devexplained.vercel.app/",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: "https://devexplained.vercel.app/search?q={search_term_string}",
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <Layout>
+      <Head>
+        <title>LeetcodeSolve - Master Coding with Expert Leetcode Solutions</title>
+        <meta
+          name="description"
+          content="Master coding interviews with LeetcodeSolve's detailed Leetcode solutions in C++ and Python, expert tutorials, and community support."
+        />
+        <meta
+          name="keywords"
+          content="Leetcode solutions, coding interviews, algorithms, data structures, C++, Python, coding tutorials"
+        />
+        <meta name="author" content="LeetcodeSolve Team" />
+        <meta name="robots" content="index, follow" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta property="og:title" content="LeetcodeSolve - Master Coding with Expert Leetcode Solutions" />
+        <meta
+          property="og:description"
+          content="Explore detailed Leetcode solutions, tutorials, and interview prep resources to excel in coding interviews."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://devexplained.vercel.app/" />
+        <meta property="og:image" content="https://devexplained.vercel.app/og-image.jpg" />
+        <meta property="og:image:alt" content="LeetcodeSolve coding platform preview" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="LeetcodeSolve - Master Coding with Expert Leetcode Solutions" />
+        <meta
+          name="twitter:description"
+          content="Level up your coding skills with LeetcodeSolve's expert solutions and tutorials."
+        />
+        <meta name="twitter:image" content="https://devexplained.vercel.app/twitter-image.jpg" />
+        <meta name="twitter:image:alt" content="LeetcodeSolve coding platform preview" />
+        <link rel="canonical" href="https://devexplained.vercel.app/" />
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="theme-color" content="#4f46e5" />
+        <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="google-site-verification" content="your-google-verification-code" />
+        <meta name="bing-site-verification" content="your-bing-verification-code" />
+        <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
+      </Head>
+
       {/* Hero Section */}
       <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-b from-gray-50 to-white dark:from-slate-900 dark:to-slate-800">
         <div className="max-w-7xl mx-auto text-center px-4 sm:px-6">
@@ -35,8 +92,11 @@ export default function Home() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.5, duration: 0.5 }}
           >
-            <Link href="/leetcode">
-              <button className="px-6 py-3 sm:px-8 sm:py-4 bg-indigo-600 text-white rounded-full text-base sm:text-lg font-semibold hover:bg-indigo-700 dark:hover:bg-indigo-500 transition shadow-md hover:scale-105 transform focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <Link href="/leetcode" prefetch={false}>
+              <button
+                className="px-6 py-3 sm:px-8 sm:py-4 bg-indigo-600 text-white rounded-full text-base sm:text-lg font-semibold hover:bg-indigo-700 dark:hover:bg-indigo-500 transition shadow-md hover:scale-105 transform focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                aria-label="Start solving Leetcode problems"
+              >
                 Start Solving Now
               </button>
             </Link>
@@ -47,7 +107,9 @@ export default function Home() {
       {/* Features Section */}
       <section className="py-12 sm:py-16 bg-gray-50 dark:bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-8 sm:mb-12">Why Choose LeetcodeSolve?</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-8 sm:mb-12">
+            Why Choose LeetcodeSolve?
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[
               {
@@ -67,15 +129,26 @@ export default function Home() {
               },
             ].map((feature, index) => (
               <motion.div
-                key={index}
+                key={`feature-${index}`}
                 variants={cardVariants}
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true }}
                 className="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-md hover:shadow-lg transition transform hover:-translate-y-1"
               >
-                <svg className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600 dark:text-indigo-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={feature.icon} />
+                <svg
+                  className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600 dark:text-indigo-400 mb-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d={feature.icon}
+                  />
                 </svg>
                 <h3 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">{feature.title}</h3>
                 <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base">{feature.description}</p>
@@ -92,18 +165,20 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
             {[
               { label: "Problems Solved", value: 5000 },
-              { label: "Languages Supported", value: 2 },
+              { label: "Languages Supported", value: 3 },
               { label: "Happy Learners", value: 10000 },
             ].map((stat, index) => (
               <motion.div
-                key={index}
+                key={`stat-${index}`}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5 }}
                 viewport={{ once: true }}
                 className="p-4"
               >
-                <p className="text-3xl sm:text-4xl font-bold text-indigo-600 dark:text-indigo-400">{stat.value.toLocaleString()}</p>
+                <p className="text-3xl sm:text-4xl font-bold text-indigo-600 dark:text-indigo-400">
+                  {stat.value.toLocaleString()}
+                </p>
                 <p className="text-gray-600 dark:text-gray-300 mt-2 text-sm sm:text-base">{stat.label}</p>
               </motion.div>
             ))}
@@ -114,7 +189,9 @@ export default function Home() {
       {/* Testimonials Section */}
       <section className="py-12 sm:py-16 bg-gray-50 dark:bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-8 sm:mb-12">What Our Users Say</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-8 sm:mb-12">
+            What Our Users Say
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
             {[
               {
@@ -127,7 +204,7 @@ export default function Home() {
               },
             ].map((testimonial, index) => (
               <motion.div
-                key={index}
+                key={`testimonial-${index}`}
                 variants={cardVariants}
                 initial="hidden"
                 whileInView="visible"
@@ -135,7 +212,9 @@ export default function Home() {
                 className="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-md"
               >
                 <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm sm:text-base">"{testimonial.quote}"</p>
-                <p className="text-indigo-600 dark:text-indigo-400 font-semibold text-sm sm:text-base">{testimonial.author}</p>
+                <p className="text-indigo-600 dark:text-indigo-400 font-semibold text-sm sm:text-base">
+                  {testimonial.author}
+                </p>
               </motion.div>
             ))}
           </div>
@@ -146,23 +225,28 @@ export default function Home() {
       <section className="py-12 sm:py-16 bg-white dark:bg-slate-800">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">Stay Updated</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-6 sm:mb-8 text-sm sm:text-base">Subscribe to get the latest tutorials and solutions.</p>
+          <p className="text-gray-600 dark:text-gray-300 mb-6 sm:mb-8 text-sm sm:text-base">
+            Subscribe to get the latest tutorials and solutions.
+          </p>
           <form
             onSubmit={(e) => {
               e.preventDefault();
               alert("Thank you for subscribing! (This is a demo.)");
             }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
+            noValidate
           >
             <input
               type="email"
               placeholder="Enter your email"
               className="px-4 py-2 rounded-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64 text-sm sm:text-base"
               required
+              aria-label="Email for newsletter subscription"
             />
             <button
               type="submit"
               className="px-6 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 dark:hover:bg-indigo-500 transition hover:scale-105 transform focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              aria-label="Subscribe to newsletter"
             >
               Subscribe
             </button>

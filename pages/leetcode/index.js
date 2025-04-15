@@ -29,7 +29,8 @@ export default function Leetcode() {
   const [isDifficultyOpen, setIsDifficultyOpen] = useState(false);
   const [isTagOpen, setIsTagOpen] = useState(false);
   const [isPerPageOpen, setIsPerPageOpen] = useState(false);
-  const [viewMode, setViewMode] = useState("list"); // Default to list for SSR consistency
+  const [viewMode, setViewMode] = useState("list"); // Default to list for SSR
+  const [userToggledView, setUserToggledView] = useState(false); // Track user toggle
 
   const difficultyRef = useRef(null);
   const tagRef = useRef(null);
@@ -63,15 +64,26 @@ export default function Leetcode() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Set view mode based on screen size after hydration
+  // Set view mode based on screen size with debouncing
   useEffect(() => {
+    let timeout;
     const handleResize = () => {
-      setViewMode(window.innerWidth >= 768 ? "table" : "list");
+      // Skip if user has manually toggled the view
+      if (userToggledView) return;
+
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        setViewMode(window.innerWidth >= 768 ? "table" : "list");
+      }, 200); // 200ms debounce
     };
-    handleResize();
+
+    handleResize(); // Set initial view
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [userToggledView]);
 
   const updateQuery = (newQuery) => {
     router.push(
@@ -199,7 +211,8 @@ export default function Leetcode() {
   };
 
   const toggleViewMode = () => {
-    setViewMode(viewMode === "list" ? "table" : "list");
+    setViewMode((prev) => (prev === "list" ? "table" : "list"));
+    setUserToggledView(true); // Mark that user has toggled
   };
 
   // Animation variants for list view
@@ -237,7 +250,7 @@ export default function Leetcode() {
         />
         <meta name="author" content="LeetcodeSolve Team" />
         <meta name="robots" content="index, follow" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         <meta
           property="og:title"
           content={`Leetcode Solutions - ${search || "All"} Problems | LeetcodeSolve`}
@@ -249,8 +262,7 @@ export default function Leetcode() {
         <meta property="og:type" content="website" />
         <meta
           property="og:url"
-          content={`https://devexplained.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""
-            }`}
+          content={`https://devexplained.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`}
         />
         <meta
           property="og:image"
@@ -271,8 +283,7 @@ export default function Leetcode() {
         />
         <link
           rel="canonical"
-          href={`https://devexplained.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""
-            }`}
+          href={`https://devexplained.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`}
         />
         <script
           type="application/ld+json"
@@ -281,8 +292,7 @@ export default function Leetcode() {
               JSON.stringify({
                 "@context": "https://schema.org",
                 "@type": "ItemList",
-                "url": `https://devexplained.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""
-                  }`,
+                "url": `https://devexplained.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`,
                 "name": `Leetcode ${search || "all"} problems`,
                 "description": `Find solutions to ${search || "all"} Leetcode problems with expert tutorials.`,
                 "itemListElement": filtered.map((p, index) => ({
@@ -290,8 +300,7 @@ export default function Leetcode() {
                   "position": index + 1,
                   "url": `https://devexplained.vercel.app/leetcode/${p.id}`,
                   "name": `${p.id}. ${p.title}`,
-                  "description": `Difficulty: ${p.difficulty}, Tags: ${p.tags?.join(", ") || ""
-                    }`,
+                  "description": `Difficulty: ${p.difficulty}, Tags: ${p.tags?.join(", ") || ""}`,
                 })),
               })
             ),
@@ -349,8 +358,7 @@ export default function Leetcode() {
                     />
                   ) : (
                     <svg
-                      className={`w-4 h-4 text-gray-500 dark:text-gray-400 transform transition-transform ${isDifficultyOpen ? "rotate-180" : ""
-                        }`}
+                      className={`w-4 h-4 text-gray-500 dark:text-gray-400 transform transition-transform ${isDifficultyOpen ? "rotate-180" : ""}`}
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -417,8 +425,7 @@ export default function Leetcode() {
                     />
                   ) : (
                     <svg
-                      className={`w-4 h-4 text-gray-500 dark:text-gray-400 transform transition-transform ${isTagOpen ? "rotate-180" : ""
-                        }`}
+                      className={`w-4 h-4 text-gray-500 dark:text-gray-400 transform transition-transform ${isTagOpen ? "rotate-180" : ""}`}
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -486,8 +493,7 @@ export default function Leetcode() {
                       />
                     ) : (
                       <svg
-                        className={`w-4 h-4 text-gray-500 dark:text-gray-400 transform transition-transform ${isPerPageOpen ? "rotate-180" : ""
-                          }`}
+                        className={`w-4 h-4 text-gray-500 dark:text-gray-400 transform transition-transform ${isPerPageOpen ? "rotate-180" : ""}`}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -588,8 +594,8 @@ export default function Leetcode() {
                                   diff === "Easy"
                                     ? "#34D399"
                                     : diff === "Medium"
-                                      ? "#FBBF24"
-                                      : "#EF4444",
+                                    ? "#FBBF24"
+                                    : "#EF4444",
                               }}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -636,10 +642,11 @@ export default function Leetcode() {
                           <th
                             key={column}
                             scope="col"
-                            className={`px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider ${column === "title" || column === "difficulty"
-                              ? "cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200"
-                              : ""
-                              }`}
+                            className={`px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider ${
+                              column === "title" || column === "difficulty"
+                                ? "cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200"
+                                : ""
+                            }`}
                             onClick={() =>
                               (column === "title" || column === "difficulty") && handleSort(column)
                             }
@@ -657,7 +664,8 @@ export default function Leetcode() {
                           </th>
                         ))}
                       </tr>
-                    </thead><tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                       {paginated.length === 0 ? (
                         <tr>
                           <td
@@ -683,10 +691,13 @@ export default function Leetcode() {
                               >
                                 {problem.id}. {problem.title}
                               </Link>
-                            </td><td className="px-4 py-4">
+                            </td>
+                            <td className="px-4 py-4">
                               <div className="flex flex-wrap gap-2 sm:gap-1">
                                 <Link
-                                  href={`/leetcode?difficulty=${encodeURIComponent(problem.difficulty)}`}
+                                  href={`/leetcode?difficulty=${encodeURIComponent(
+                                    problem.difficulty
+                                  )}`}
                                   className={`inline-block text-center px-1.5 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border transition-all duration-200 truncate max-w-[80px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${getDifficultyColor(
                                     problem.difficulty
                                   )}`}
@@ -703,8 +714,9 @@ export default function Leetcode() {
                                   <Link
                                     key={t}
                                     href={`/leetcode?tag=${encodeURIComponent(t)}`}
-                                    className={`inline-block text-center px-1 py-0.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 transition-all duration-200 truncate max-w-[100px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${t.length > 15 ? "text-[10px]" : ""
-                                      }`}
+                                    className={`inline-block text-center px-1 py-0.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 transition-all duration-200 truncate max-w-[100px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${
+                                      t.length > 15 ? "text-[10px]" : ""
+                                    }`}
                                     onClick={() => setPage(1)}
                                     title={t}
                                     aria-label={`Filter by ${t} tag`}
@@ -805,10 +817,11 @@ export default function Leetcode() {
                     <button
                       key={p}
                       onClick={() => handlePageChange(p)}
-                      className={`px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium transition-all duration-200 shadow-sm ${p === page
-                        ? "bg-indigo-600 text-white border-indigo-600"
-                        : "bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        }`}
+                      className={`px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium transition-all duration-200 shadow-sm ${
+                        p === page
+                          ? "bg-indigo-600 text-white border-indigo-600"
+                          : "bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      }`}
                     >
                       {p}
                     </button>

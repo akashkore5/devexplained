@@ -78,7 +78,7 @@ export default function Home() {
         />
         <meta name="author" content="LeetcodeSolve Team" />
         <meta name="robots" content="index, follow" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         <meta property="og:title" content="LeetcodeSolve - Master Coding with Expert Leetcode Solutions" />
         <meta
           property="og:description"
@@ -150,7 +150,7 @@ export default function Home() {
           <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-8 sm:mb-12">
             Why Choose LeetcodeSolve?
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[
               {
                 title: "Detailed Solutions",
@@ -177,8 +177,7 @@ export default function Home() {
                 key={`feature-${index}`}
                 variants={cardVariants}
                 initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
+                animate="visible" // Changed from whileInView to prevent scroll re-trigger
                 className="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-md hover:shadow-lg transition transform hover:-translate-y-1"
               >
                 <svg
@@ -207,7 +206,7 @@ export default function Home() {
       <section className="py-12 sm:py-16 bg-indigo-50 dark:bg-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-8 sm:mb-12">Our Impact</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 sm:gap-8">
+          <div className="flex flex-col sm:grid sm:grid-cols-4 gap-6 sm:gap-8">
             {[
               { label: "Problems Solved", value: 5000 },
               { label: "Languages Supported", value: 3 },
@@ -217,9 +216,8 @@ export default function Home() {
               <motion.div
                 key={`stat-${index}`}
                 initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5 }}
-                viewport={{ once: true }}
                 className="p-4"
               >
                 <p className="text-3xl sm:text-4xl font-bold text-indigo-600 dark:text-indigo-400">
@@ -238,7 +236,7 @@ export default function Home() {
           <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-8 sm:mb-12">
             What Our Users Say
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
+          <div className="flex flex-col sm:grid sm:grid-cols-3 gap-6 sm:gap-8">
             {[
               {
                 quote: "LeetcodeSolve helped me understand complex algorithms with clear explanations!",
@@ -257,8 +255,7 @@ export default function Home() {
                 key={`testimonial-${index}`}
                 variants={cardVariants}
                 initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
+                animate="visible" // Changed from whileInView
                 className="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-md"
               >
                 <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm sm:text-base">"{testimonial.quote}"</p>

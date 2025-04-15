@@ -6,12 +6,12 @@ export async function getServerSideProps({ params }) {
   problems.forEach((problem) => {
     if (problem.tags && Array.isArray(problem.tags)) {
       problem.tags.forEach((t) => {
-        validTags.set(t.toLowerCase(), t); // Map lowercase to original tag
+        validTags.set(t, t); // Map lowercase to original tag
       });
     }
   });
 
-  const lowercaseTag = tag.toLowerCase();
+  const lowercaseTag = tag;
   if (!validTags.has(lowercaseTag)) {
     return {
       notFound: true,

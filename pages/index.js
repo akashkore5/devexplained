@@ -2,15 +2,16 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import Layout from "../components/Layout";
 import Head from "next/head";
+import { useState } from "react";
+import { toast, Toaster } from "react-hot-toast";
 
 export default function Home() {
-  // Animation variants
+  const [email, setEmail] = useState("");
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
   };
 
-  // Structured data for SEO
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -24,6 +25,43 @@ export default function Home() {
       },
       "query-input": "required name=search_term_string",
     },
+  };
+
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
+  const handleSubscribe = async (e) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      toast.error("Email cannot be empty!");
+      return;
+    }
+    if (!validateEmail(email)) {
+      toast.error("Please enter a valid email!");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(data.message);
+        setEmail("");
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error("Something went wrong. Please try again!");
+    }
   };
 
   return (
@@ -67,6 +105,8 @@ export default function Home() {
         <meta name="bing-site-verification" content="your-bing-verification-code" />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Head>
+
+      <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
 
       {/* Hero Section */}
       <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-b from-gray-50 to-white dark:from-slate-900 dark:to-slate-800">
@@ -127,6 +167,11 @@ export default function Home() {
                 description: "Join a community of coders to discuss solutions and share insights.",
                 icon: "M18 13c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6v4l5-5-5-5v4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8h-2z",
               },
+              {
+                title: "Progress Tracking",
+                description: "Monitor your coding journey with personalized dashboards and analytics.",
+                icon: "M21 6H3v2h18V6zm0 5H3v2h18v-2zm0 5H3v2h18v-2z",
+              },
             ].map((feature, index) => (
               <motion.div
                 key={`feature-${index}`}
@@ -162,11 +207,12 @@ export default function Home() {
       <section className="py-12 sm:py-16 bg-indigo-50 dark:bg-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-8 sm:mb-12">Our Impact</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 sm:gap-8">
             {[
               { label: "Problems Solved", value: 5000 },
               { label: "Languages Supported", value: 3 },
               { label: "Happy Learners", value: 10000 },
+              { label: "Community Members", value: 500 },
             ].map((stat, index) => (
               <motion.div
                 key={`stat-${index}`}
@@ -192,7 +238,7 @@ export default function Home() {
           <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-8 sm:mb-12">
             What Our Users Say
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
             {[
               {
                 quote: "LeetcodeSolve helped me understand complex algorithms with clear explanations!",
@@ -201,6 +247,10 @@ export default function Home() {
               {
                 quote: "The multi-language solutions saved me hours during interview prep.",
                 author: "John Smith, CS Student",
+              },
+              {
+                quote: "The community support is amazing for tackling tough problems!",
+                author: "Emily Chen, Developer",
               },
             ].map((testimonial, index) => (
               <motion.div
@@ -229,16 +279,15 @@ export default function Home() {
             Subscribe to get the latest tutorials and solutions.
           </p>
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              alert("Thank you for subscribing! (This is a demo.)");
-            }}
+            onSubmit={handleSubscribe}
             className="flex flex-col sm:flex-row gap-4 justify-center"
             noValidate
           >
             <input
               type="email"
               placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="px-4 py-2 rounded-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64 text-sm sm:text-base"
               required
               aria-label="Email for newsletter subscription"

@@ -90,6 +90,11 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
   const codeRef = useRef(null);
   const router = useRouter();
 
+  // Calculate next and previous IDs
+  const currentId = parseInt(frontMatter.id, 10);
+  const nextId = currentId + 1;
+  const prevId = currentId > 1 ? currentId - 1 : null;
+
   // Sanitize HTML content
   const sanitizedContentHtml = useMemo(() => {
     return purify.sanitize(contentHtml, { USE_PROFILES: { html: true } });
@@ -265,6 +270,15 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
             dangerouslySetInnerHTML={{ __html: sanitizedContentHtml || "<p>No explanation available.</p>" }}
             aria-label="Problem explanation"
           />
+          <div className="mt-4">
+            <a
+              href={`https://leetcode.com/problems/${frontMatter.title.replace(/\s+/g, '-').toLowerCase()}`}
+              rel="noopener noreferrer"
+              className="inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
+            >
+              View Leetcode Problem
+            </a>
+          </div>
         </motion.section>
 
         {/* Solutions */}
@@ -357,6 +371,18 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
             </ErrorBoundary>
           </div>
         </motion.section>
+
+        {/* Navigation Buttons */}
+        <div className="flex justify-between mt-8">
+          {prevId !== null && (
+            <Link href={`/leetcode/${prevId}`} className="px-4 py-2 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-slate-600 transition">
+              Previous Question
+            </Link>
+          )}
+          <Link href={`/leetcode/${nextId}`} className="px-4 py-2 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-slate-600 transition">
+            Next Question
+          </Link>
+        </div>
       </article>
     </Layout>
   );

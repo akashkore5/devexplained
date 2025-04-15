@@ -1,8 +1,8 @@
-# LeetcodeSolve
+<!-- # LeetcodeSolve
 <!-- 
 ![LeetcodeSolve](https://img.shields.io/badge/Next.js-14.2.15-black?logo=next.js)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.14-38B2AC?logo=tailwind-css)
-![License](https://img.shields.io/badge/License-MIT-blue) -->
+![License](https://img.shields.io/badge/License-MIT-blue) 
 
 **LeetcodeSolve** is a modern web application built with Next.js to provide detailed Leetcode problem solutions in Java, C++, and Python. It features a responsive design, animated UI, dark mode, and efficient navigation for coding enthusiasts preparing for technical interviews.
 
@@ -181,4 +181,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ---
 
-*Built with ❤️ by the LeetcodeSolve team.*
+*Built with ❤️ by the LeetcodeSolve team.* -->

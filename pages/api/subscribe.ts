@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const blobKey = "vercel_blob_rw_Df0Ewcxijqp9oGxS_h2CWF0qjJhh0wsP5yDzExWfJgtGKoB";
+    const blobKey = "subscribers.json"; 
     
     // Fetch existing subscribers
     let subscribers: { email: string; date: string }[] = [];
@@ -48,6 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await put(blobKey, JSON.stringify(subscribers, null, 2), {
       access: "public",
       contentType: "application/json",
+      allowOverwrite: true,
     });
 
     return res.status(200).json({ message: "Thanks for subscribing!" });

@@ -1,8 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import fs from "fs/promises";
-import path from "path";
-
-const filePath = path.join(process.cwd(), "data", "subscribers.json");
+import { put, list, del } from "@vercel/blob";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -21,25 +18,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    const blobKey = "vercel_blob_rw_Df0Ewcxijqp9oGxS_h2CWF0qjJhh0wsP5yDzExWfJgtGKoB";
+    
+    // Fetch existing subscribers
     let subscribers: { email: string; date: string }[] = [];
     try {
-      const data = await fs.readFile(filePath, "utf-8");
-      subscribers = JSON.parse(data);
+      const { blobs } = await list({ prefix: blobKey });
+      if (blobs.length > 0) {
+        const response = await fetch(blobs[0].url);
+        subscribers = await response.json();
+      }
     } catch (error) {
-      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      console.error("Error reading blob:", error);
     }
 
+    // Check for duplicate email
     if (subscribers.some((sub) => sub.email === email)) {
       return res.status(400).json({ message: "Email already subscribed" });
     }
 
+    // Add new subscriber
     const newSubscriber = {
       email,
       date: new Date().toISOString(),
     };
-
     subscribers.push(newSubscriber);
-    await fs.writeFile(filePath, JSON.stringify(subscribers, null, 2));
+
+    // Update blob
+    await put(blobKey, JSON.stringify(subscribers, null, 2), {
+      access: "public",
+      contentType: "application/json",
+    });
 
     return res.status(200).json({ message: "Thanks for subscribing!" });
   } catch (error) {

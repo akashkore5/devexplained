@@ -1,6 +1,9 @@
 import Link from "next/link";
+import Head from "next/head";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { SunIcon, MoonIcon, Bars3Icon, XMarkIcon } from "@heroicons/react/24/solid";
+import DOMPurify from "isomorphic-dompurify";
 
 export default function Layout({ children }) {
   const [theme, setTheme] = useState("light");
@@ -28,6 +31,77 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-100 transition-colors duration-300 flex flex-col">
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="robots" content="index, follow" />
+        <meta
+          name="keywords"
+          content="leetcode, system design, coding, algorithms, interview prep, programming"
+        />
+        <meta name="author" content="LeetcodeSolve Team" />
+        <meta
+          name="description"
+          content="LeetcodeSolve: Master coding interviews with Leetcode solutions, system design guides, and more."
+        />
+        <meta property="og:site_name" content="LeetcodeSolve" />
+        <meta property="og:type" content="website" />
+        <meta
+          property="og:url"
+          content="https://leetcodesolve.vercel.app"
+        />
+        <meta
+          property="og:title"
+          content="LeetcodeSolve - Coding & System Design Prep"
+        />
+        <meta
+          property="og:description"
+          content="Prepare for technical interviews with Leetcode solutions, system design tutorials, and coding challenges."
+        />
+        <meta
+          property="og:image"
+          content="https://leetcodesolve.vercel.app/og-image.jpg"
+        />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta
+          name="twitter:title"
+          content="LeetcodeSolve - Coding & System Design Prep"
+        />
+        <meta
+          name="twitter:description"
+          content="Prepare for technical interviews with Leetcode solutions, system design tutorials, and coding challenges."
+        />
+        <meta
+          name="twitter:image"
+          content="https://leetcodesolve.vercel.app/twitter-image.jpg"
+        />
+        <link rel="canonical" href="https://leetcodesolve.vercel.app" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="manifest" href="/site.webmanifest" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(
+              JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                "name": "LeetcodeSolve",
+                "url": "https://leetcodesolve.vercel.app",
+                "description": "Master coding interviews with Leetcode solutions and system design guides.",
+                "publisher": {
+                  "@type": "Organization",
+                  "name": "LeetcodeSolve Team",
+                },
+                "potentialAction": {
+                  "@type": "SearchAction",
+                  "target": "https://leetcodesolve.vercel.app/search?q={search_term_string}",
+                  "query-input": "required name=search_term_string",
+                },
+              })
+            ),
+          }}
+        />
+      </Head>
+
       {/* Sticky Header */}
       <header className="bg-white dark:bg-slate-800 shadow-md p-4 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -35,12 +109,27 @@ export default function Layout({ children }) {
             LeetcodeSolve
           </Link>
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/" className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
+          <nav role="navigation" className="hidden md:flex items-center space-x-6">
+            <Link
+              href="/"
+              className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+              aria-current={children.props?.pathname === "/" ? "page" : undefined}
+            >
               Home
             </Link>
-            <Link href="/leetcode" className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
+            <Link
+              href="/leetcode"
+              className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+              aria-current={children.props?.pathname === "/leetcode" ? "page" : undefined}
+            >
               Leetcode
+            </Link>
+            <Link
+              href="/system-design"
+              className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+              aria-current={children.props?.pathname === "/system-design" ? "page" : undefined}
+            >
+              System Design
             </Link>
             <button
               onClick={toggleTheme}
@@ -48,26 +137,24 @@ export default function Layout({ children }) {
               aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
             >
               {theme === "light" ? (
-                <svg className="w-5 h-5 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-                </svg>
+                <MoonIcon className="w-5 h-5 text-gray-800" />
               ) : (
-                <svg className="w-5 h-5 text-gray-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
+                <SunIcon className="w-5 h-5 text-gray-100" />
               )}
             </button>
           </nav>
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 focus:outline-none"
+            className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             onClick={toggleMenu}
             aria-label="Toggle menu"
             aria-expanded={isMenuOpen}
           >
-            <svg className="w-6 h-6 text-gray-800 dark:text-gray-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16m-7 6h7"} />
-            </svg>
+            {isMenuOpen ? (
+              <XMarkIcon className="w-6 h-6 text-gray-800 dark:text-gray-100" />
+            ) : (
+              <Bars3Icon className="w-6 h-6 text-gray-800 dark:text-gray-100" />
+            )}
           </button>
         </div>
         {/* Mobile Nav */}
@@ -75,13 +162,33 @@ export default function Layout({ children }) {
           <motion.nav
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
             className="md:hidden mt-4 flex flex-col space-y-4 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"
+            role="navigation"
           >
-            <Link href="/" className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition" onClick={toggleMenu}>
+            <Link
+              href="/"
+              className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+              onClick={toggleMenu}
+              aria-current={children.props?.pathname === "/" ? "page" : undefined}
+            >
               Home
             </Link>
-            <Link href="/leetcode" className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition" onClick={toggleMenu}>
+            <Link
+              href="/leetcode"
+              className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+              onClick={toggleMenu}
+              aria-current={children.props?.pathname === "/leetcode" ? "page" : undefined}
+            >
               Leetcode
+            </Link>
+            <Link
+              href="/system-design"
+              className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+              onClick={toggleMenu}
+              aria-current={children.props?.pathname === "/system-design" ? "page" : undefined}
+            >
+              System Design
             </Link>
             <button
               onClick={() => {
@@ -92,13 +199,9 @@ export default function Layout({ children }) {
               aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
             >
               {theme === "light" ? (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-                </svg>
+                <MoonIcon className="w-5 h-5" />
               ) : (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
+                <SunIcon className="w-5 h-5" />
               )}
               <span>{theme === "light" ? "Dark Mode" : "Light Mode"}</span>
             </button>
@@ -114,15 +217,24 @@ export default function Layout({ children }) {
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <p>© {new Date().getFullYear()} LeetcodeSolve. All rights reserved.</p>
             <div className="flex gap-4 sm:gap-6">
-              <a href="#" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition">
+              <Link href="/about" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition">
                 About
-              </a>
-              <a href="#" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition">
+              </Link>
+              <Link href="/contact" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition">
                 Contact
-              </a>
-              <a href="#" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition">
+              </Link>
+              <a
+                href="https://github.com/leetcodesolve"
+                className="hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="GitHub"
+              >
                 GitHub
               </a>
+              <Link href="/privacy" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition">
+                Privacy Policy
+              </Link>
             </div>
           </div>
         </div>

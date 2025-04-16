@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
-import problems from "../../data/problems.json";
+import questions from "../../data/system_design_questions.json";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import Layout from "../../components/Layout";
@@ -17,7 +17,7 @@ import {
   ListBulletIcon,
 } from "@heroicons/react/24/solid";
 
-export default function Leetcode() {
+export default function SystemDesign() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState("");
@@ -29,8 +29,8 @@ export default function Leetcode() {
   const [isDifficultyOpen, setIsDifficultyOpen] = useState(false);
   const [isTagOpen, setIsTagOpen] = useState(false);
   const [isPerPageOpen, setIsPerPageOpen] = useState(false);
-  const [viewMode, setViewMode] = useState("list"); // Default to list for SSR
-  const [userToggledView, setUserToggledView] = useState(false); // Track user toggle
+  const [viewMode, setViewMode] = useState("list");
+  const [userToggledView, setUserToggledView] = useState(false);
 
   const difficultyRef = useRef(null);
   const tagRef = useRef(null);
@@ -64,20 +64,18 @@ export default function Leetcode() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Set view mode based on screen size with debouncing
+  // Debounced resize handler for view mode
   useEffect(() => {
     let timeout;
     const handleResize = () => {
-      // Skip if user has manually toggled the view
       if (userToggledView) return;
-
       clearTimeout(timeout);
       timeout = setTimeout(() => {
         setViewMode(window.innerWidth >= 768 ? "table" : "list");
-      }, 200); // 200ms debounce
+      }, 200);
     };
 
-    handleResize(); // Set initial view
+    handleResize();
     window.addEventListener("resize", handleResize);
     return () => {
       clearTimeout(timeout);
@@ -98,41 +96,41 @@ export default function Leetcode() {
 
   const allTags = useMemo(() => {
     const tags = new Set();
-    problems.forEach((p) => p.tags?.forEach((t) => tags.add(t)));
+    questions.forEach((q) => q.tags?.forEach((t) => tags.add(t)));
     return ["All", ...Array.from(tags).sort()];
   }, []);
 
   const tagCounts = useMemo(() => {
     const counts = {};
-    problems.forEach((p) =>
-      p.tags?.forEach((t) => (counts[t] = (counts[t] || 0) + 1))
+    questions.forEach((q) =>
+      q.tags?.forEach((t) => (counts[t] = (counts[t] || 0) + 1))
     );
     return counts;
   }, []);
 
   const filtered = useMemo(() => {
-    let result = problems;
+    let result = questions;
     if (search) {
       result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(search.toLowerCase()) ||
-          p.id.toString() === search
+        (q) =>
+          q.title.toLowerCase().includes(search.toLowerCase()) ||
+          q.id.toString() === search
       );
     }
     if (difficulty && difficulty !== "All") {
-      result = result.filter((p) => p.difficulty === difficulty);
+      result = result.filter((q) => q.difficulty === difficulty);
     }
     if (tag && tag !== "All") {
-      result = result.filter((p) =>
-        p.tags?.some((t) => t.toLowerCase() === tag.toLowerCase())
+      result = result.filter((q) =>
+        q.tags?.some((t) => t.toLowerCase() === tag.toLowerCase())
       );
     }
     return result;
   }, [search, difficulty, tag]);
 
-  const sortedProblems = useMemo(() => {
+  const sortedQuestions = useMemo(() => {
     if (!sortColumn || !sortDirection) {
-      return [...filtered]; // Original order (no sort)
+      return [...filtered];
     }
     return [...filtered].sort((a, b) => {
       if (sortColumn === "title") {
@@ -146,8 +144,8 @@ export default function Leetcode() {
     });
   }, [filtered, sortColumn, sortDirection]);
 
-  const totalPages = Math.ceil(sortedProblems.length / perPage);
-  const paginated = sortedProblems.slice((page - 1) * perPage, page * perPage);
+  const totalPages = Math.ceil(sortedQuestions.length / perPage);
+  const paginated = sortedQuestions.slice((page - 1) * perPage, page * perPage);
 
   const handleSort = (column) => {
     if (sortColumn === column) {
@@ -212,10 +210,9 @@ export default function Leetcode() {
 
   const toggleViewMode = () => {
     setViewMode((prev) => (prev === "list" ? "table" : "list"));
-    setUserToggledView(true); // Mark that user has toggled
+    setUserToggledView(true);
   };
 
-  // Animation variants for list view
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
@@ -238,31 +235,31 @@ export default function Leetcode() {
     <Layout>
       <Head>
         <title>
-          {`Leetcode Solutions - ${search || "All"} Problems | LeetcodeSolve`}
+          {`System Design Questions - ${search || "All"} Topics | SystemDesignGuide`}
         </title>
         <meta
           name="description"
-          content={`Find solutions to ${search || "all"} Leetcode problems with expert tutorials in C++ and Python. Filter by ${difficulty || "all difficulties"} and ${tag || "all tags"} on LeetcodeSolve.`}
+          content={`Explore ${search || "all"} system design questions with detailed architectures, microservices, and tutorials. Filter by ${difficulty || "all difficulties"} and ${tag || "all topics"}.`}
         />
         <meta
           name="keywords"
-          content={`Leetcode solutions, coding problems, ${difficulty || "easy medium hard"}, ${tag || "all tags"}, algorithms, data structures, C++, Python, coding tutorials`}
+          content={`system design, microservices, ${difficulty || "beginner intermediate advanced"}, ${tag || "all topics"}, scalability, caching, load balancing, API gateway, tutorials`}
         />
-        <meta name="author" content="LeetcodeSolve Team" />
+        <meta name="author" content="SystemDesignGuide Team" />
         <meta name="robots" content="index, follow" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         <meta
           property="og:title"
-          content={`Leetcode Solutions - ${search || "All"} Problems | LeetcodeSolve`}
+          content={`System Design Questions - ${search || "All"} Topics | SystemDesignGuide`}
         />
         <meta
           property="og:description"
-          content={`Explore ${search || "all"} Leetcode problems with solutions, tutorials, and filters for ${difficulty || "all difficulties"} and ${tag || "all tags"}.`}
+          content={`Master ${search || "all"} system design topics with in-depth guides on microservices, caching, and more.`}
         />
         <meta property="og:type" content="website" />
         <meta
           property="og:url"
-          content={`https://devexplained.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`}
+          content={`https://devexplained.vercel.app/system-design${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`}
         />
         <meta
           property="og:image"
@@ -271,11 +268,11 @@ export default function Leetcode() {
         <meta name="twitter:card" content="summary_large_image" />
         <meta
           name="twitter:title"
-          content={`Leetcode Solutions - ${search || "All"} Problems | LeetcodeSolve`}
+          content={`System Design Questions - ${search || "All"} Topics | SystemDesignGuide`}
         />
         <meta
           name="twitter:description"
-          content={`Level up with ${search || "all"} Leetcode solutions filtered by ${difficulty || "all difficulties"} and ${tag || "all tags"}.`}
+          content={`Learn ${search || "all"} system design concepts with filters for ${difficulty || "all difficulties"} and ${tag || "all topics"}.`}
         />
         <meta
           name="twitter:image"
@@ -283,7 +280,7 @@ export default function Leetcode() {
         />
         <link
           rel="canonical"
-          href={`https://devexplained.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`}
+          href={`https://devexplained.vercel.app/system-design${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`}
         />
         <script
           type="application/ld+json"
@@ -292,15 +289,15 @@ export default function Leetcode() {
               JSON.stringify({
                 "@context": "https://schema.org",
                 "@type": "ItemList",
-                "url": `https://devexplained.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`,
-                "name": `Leetcode ${search || "all"} problems`,
-                "description": `Find solutions to ${search || "all"} Leetcode problems with expert tutorials.`,
-                "itemListElement": filtered.map((p, index) => ({
+                "url": `https://devexplained.vercel.app/system-design${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`,
+                "name": `System Design ${search || "all"} topics`,
+                "description": `Explore ${search || "all"} system design questions with detailed guides.`,
+                "itemListElement": filtered.map((q, index) => ({
                   "@type": "ListItem",
                   "position": index + 1,
-                  "url": `https://devexplained.vercel.app/leetcode/${p.id}`,
-                  "name": `${p.id}. ${p.title}`,
-                  "description": `Difficulty: ${p.difficulty}, Tags: ${p.tags?.join(", ") || ""}`,
+                  "url": `https://devexplained.vercel.app/system-design/${q.id}`,
+                  "name": `${q.id}. ${q.title}`,
+                  "description": `Difficulty: ${q.difficulty}, Tags: ${q.tags?.join(", ") || ""}`,
                 })),
               })
             ),
@@ -327,7 +324,7 @@ export default function Leetcode() {
                   setPage(1);
                 }}
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300 shadow-sm hover:shadow-md pr-10 text-sm"
-                aria-label="Search problems"
+                aria-label="Search system design questions"
               />
               {search && (
                 <button
@@ -382,7 +379,7 @@ export default function Leetcode() {
                     transition={{ duration: 0.2 }}
                     className="absolute z-10 mt-2 w-full rounded-lg bg-white dark:bg-gray-800 shadow-xl border border-gray-300 dark:border-gray-600 overflow-hidden"
                   >
-                    {["All", "Easy", "Medium", "Hard"].map((option) => (
+                    {["All", "Beginner", "Intermediate", "Advanced"].map((option) => (
                       <button
                         key={option}
                         onClick={() => {
@@ -478,7 +475,7 @@ export default function Leetcode() {
                 <button
                   onClick={() => setIsPerPageOpen(!isPerPageOpen)}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-left flex justify-between items-center transition-all duration-300 shadow-sm hover:shadow-md text-sm truncate"
-                  aria-label="Select problems per page"
+                  aria-label="Select questions per page"
                 >
                   <span className="truncate">{truncateText(`${perPage} / Page`)}</span>
                   <span className="flex-shrink-0 w-4 h-4">
@@ -489,7 +486,7 @@ export default function Leetcode() {
                           e.stopPropagation();
                           clearFilter("perPage");
                         }}
-                        aria-label="Reset problems per page"
+                        aria-label="Reset questions per page"
                       />
                     ) : (
                       <svg
@@ -551,13 +548,13 @@ export default function Leetcode() {
 
         {/* Main Content and Sidebar */}
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Problem List/Table */}
+          {/* Question List/Table */}
           <div className="w-full lg:w-3/4">
             {viewMode === "list" ? (
               <ul className="space-y-6">
                 {paginated.length === 0 ? (
                   <li className="text-center text-gray-500 dark:text-gray-400 py-10 text-lg">
-                    No problems found. Try adjusting your filters.
+                    No questions found. Try adjusting your filters.
                   </li>
                 ) : (
                   paginated.map(({ id, title, difficulty: diff, tags }) => (
@@ -568,11 +565,11 @@ export default function Leetcode() {
                       animate="visible"
                       className="border rounded-xl p-6 bg-white dark:bg-slate-900 shadow-lg hover:shadow-xl transition transform hover:-translate-y-2 cursor-pointer"
                       whileHover={{ scale: 1.02 }}
-                      onClick={() => router.push(`/leetcode/${id}`)}
+                      onClick={() => router.push(`/system-design/${id}`)}
                     >
                       <div className="flex flex-col">
                         <Link
-                          href={`/leetcode/${id}`}
+                          href={`/system-design/${id}`}
                           className="text-xl font-semibold text-indigo-600 dark:text-indigo-400 hover:underline mb-2"
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -591,9 +588,9 @@ export default function Leetcode() {
                               className="px-3 py-1 rounded-full text-white text-sm font-medium"
                               style={{
                                 backgroundColor:
-                                  diff === "Easy"
+                                  diff === "Beginner"
                                     ? "#34D399"
-                                    : diff === "Medium"
+                                    : diff === "Intermediate"
                                     ? "#FBBF24"
                                     : "#EF4444",
                               }}
@@ -611,7 +608,7 @@ export default function Leetcode() {
                           {tags?.map((t, i) => (
                             <Link
                               key={i}
-                              href={`/leetcode?tag=${encodeURIComponent(t)}`}
+                              href={`/system-design?tag=${encodeURIComponent(t)}`}
                               className="text-sm bg-gray-100 dark:bg-slate-700 px-3 py-1 rounded-full hover:bg-gray-200 dark:hover:bg-slate-600 transition"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -672,13 +669,13 @@ export default function Leetcode() {
                             colSpan="4"
                             className="px-4 py-8 text-center text-gray-500 dark:text-gray-400 text-lg"
                           >
-                            No problems found. Try adjusting your filters.
+                            No questions found. Try adjusting your filters.
                           </td>
                         </tr>
                       ) : (
-                        paginated.map((problem) => (
+                        paginated.map((question) => (
                           <motion.tr
-                            key={problem.id}
+                            key={question.id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3 }}
@@ -686,34 +683,34 @@ export default function Leetcode() {
                           >
                             <td className="px-4 py-4 text-sm">
                               <Link
-                                href={`/leetcode/${problem.id}`}
+                                href={`/system-design/${question.id}`}
                                 className="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
                               >
-                                {problem.id}. {problem.title}
+                                {question.id}. {question.title}
                               </Link>
                             </td>
                             <td className="px-4 py-4">
                               <div className="flex flex-wrap gap-2 sm:gap-1">
                                 <Link
-                                  href={`/leetcode?difficulty=${encodeURIComponent(
-                                    problem.difficulty
+                                  href={`/system-design?difficulty=${encodeURIComponent(
+                                    question.difficulty
                                   )}`}
                                   className={`inline-block text-center px-1.5 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border transition-all duration-200 truncate max-w-[80px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${getDifficultyColor(
-                                    problem.difficulty
+                                    question.difficulty
                                   )}`}
-                                  title={problem.difficulty}
-                                  aria-label={`Filter by ${problem.difficulty} difficulty`}
+                                  title={question.difficulty}
+                                  aria-label={`Filter by ${question.difficulty} difficulty`}
                                 >
-                                  {problem.difficulty}
+                                  {question.difficulty}
                                 </Link>
                               </div>
                             </td>
                             <td className="px-4 py-4">
                               <div className="flex flex-wrap gap-2 sm:gap-1">
-                                {problem.tags?.map((t) => (
+                                {question.tags?.map((t) => (
                                   <Link
                                     key={t}
-                                    href={`/leetcode?tag=${encodeURIComponent(t)}`}
+                                    href={`/system-design?tag=${encodeURIComponent(t)}`}
                                     className={`inline-block text-center px-1 py-0.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 transition-all duration-200 truncate max-w-[100px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${
                                       t.length > 15 ? "text-[10px]" : ""
                                     }`}
@@ -728,9 +725,9 @@ export default function Leetcode() {
                             </td>
                             <td className="px-4 py-4">
                               <Link
-                                href={`/leetcode/${problem.id}`}
+                                href={`/system-design/${question.id}`}
                                 className="inline-flex justify-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-all duration-200 w-full"
-                                aria-label={`View article for ${problem.title}`}
+                                aria-label={`View article for ${question.title}`}
                               >
                                 <DocumentTextIcon className="w-5 h-5" />
                               </Link>
@@ -765,7 +762,7 @@ export default function Leetcode() {
                       t !== "All" && (
                         <li key={t}>
                           <Link
-                            href={`/leetcode?tag=${encodeURIComponent(t)}`}
+                            href={`/system-design?tag=${encodeURIComponent(t)}`}
                             className="text-indigo-600 dark:text-indigo-400 hover:underline flex justify-between items-center text-base"
                             onClick={() => {
                               setTag(t);
@@ -797,8 +794,8 @@ export default function Leetcode() {
             <div className="text-sm text-gray-600 dark:text-gray-300">
               <span>
                 Showing {(page - 1) * perPage + 1} to{" "}
-                {Math.min(page * perPage, sortedProblems.length)} of{" "}
-                {sortedProblems.length} problems
+                {Math.min(page * perPage, sortedQuestions.length)} of{" "}
+                {sortedQuestions.length} questions
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -859,7 +856,7 @@ export default function Leetcode() {
                     t !== "All" && (
                       <li key={t}>
                         <Link
-                          href={`/leetcode?tag=${encodeURIComponent(t)}`}
+                          href={`/system-design?tag=${encodeURIComponent(t)}`}
                           className="text-indigo-600 dark:text-indigo-400 hover:underline flex justify-between items-center text-base"
                           onClick={() => {
                             setTag(t);
@@ -871,7 +868,7 @@ export default function Leetcode() {
                             ({tagCounts[t] || 0})
                           </span>
                         </Link>
-                      </li>
+                        </li>
                     )
                 )}
               </ul>

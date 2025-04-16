@@ -1,0 +1,551 @@
+[
+    {
+      "id": "1",
+      "title": "Design a URL Preview Service",
+      "difficulty": "Easy",
+      "tags": [
+        "API Design",
+        "URL Parsing",
+        "Content Summarization"
+      ],
+      "description": "The URL Preview Service is designed to provide a preview of the content contained within a given URL, allowing users to quickly understand the topic and relevance of the page without having to visit it."
+    },
+    {
+      "id": "2",
+      "title": "Design a Collaborative Document Editor",
+      "difficulty": "Medium",
+      "tags": [
+        "real-time collaboration",
+        "document editing",
+        "websockets"
+      ],
+      "description": "Design a collaborative document editor that allows multiple users to simultaneously edit and share documents, requiring real-time updates and conflict resolution mechanisms."
+    },
+    {
+      "id": "3",
+      "title": "Design a Real-Time Chat Application",
+      "difficulty": "Hard",
+      "tags": [
+        "WebSockets",
+        "Node.js",
+        "Redis"
+      ],
+      "description": "Design a real-time chat application that allows users to send and receive instant messages, with features like user presence, online status, and message persistence."
+    },
+    {
+      "id": "4",
+      "title": "Design a Social Media Feed",
+      "difficulty": "Easy",
+      "tags": [
+        "microservices",
+        "realtime-processing",
+        "graph-databases"
+      ],
+      "description": "Design a social media feed that efficiently handles real-time updates, user interactions and caching to provide a seamless user experience while handling high traffic and large amounts of user-generated content."
+    },
+    {
+      "id": "5",
+      "title": "Design a Video Streaming Platform",
+      "difficulty": "Medium",
+      "tags": [
+        "Cloud Computing",
+        "Distributed Systems",
+        "Real-time Data Processing"
+      ],
+      "description": "Design a scalable and reliable video streaming platform that can handle millions of concurrent users, offering features like live streaming, on-demand content playback, and seamless user authentication."
+    },
+    {
+      "id": "6",
+      "title": "Design a Distributed Rate Limiter",
+      "difficulty": "Hard",
+      "tags": [
+        "Distributed Systems",
+        "Rate Limiting",
+        "Cloud-Native"
+      ],
+      "description": "Design a distributed rate limiter that allows for scalable and fault-tolerant control over the rate at which clients can access a shared resource, ensuring fair distribution of throughput across multiple nodes."
+    },
+    {
+      "id": "7",
+      "title": "Design an Online Code Compiler",
+      "difficulty": "Easy",
+      "tags": [
+        "compiler",
+        "online",
+        "cloud"
+      ],
+      "description": "Design a system that accepts user-submitted code, compiles it into an executable format, and returns the compiled output or error messages."
+    },
+    {
+      "id": "8",
+      "title": "Design an Online IDE",
+      "difficulty": "Medium",
+      "tags": [
+        "cloud-based",
+        "real-time collaboration",
+        "editor"
+      ],
+      "description": "Design an online Integrated Development Environment (IDE) that enables developers to write, compile, and debug code from anywhere, with real-time collaboration features and seamless integration with version control systems."
+    },
+    {
+      "id": "9",
+      "title": "Design a Cloud File Storage System like Dropbox",
+      "difficulty": "Hard",
+      "tags": [
+        "cloud storage",
+        "distributed file system",
+        "s3",
+        "azure blob"
+      ],
+      "description": "Design a scalable, secure and highly available cloud file storage system similar to Dropbox that can store and manage massive amounts of user files"
+    },
+    {
+      "id": "10",
+      "title": "Design a Ticket Booking System",
+      "difficulty": "Easy",
+      "tags": [
+        "Web Development",
+        "Database Design",
+        "User Authentication"
+      ],
+      "description": "Design a ticket booking system that allows users to search and book tickets for various events, managing availability, pricing, and user preferences."
+    },
+    {
+      "id": "11",
+      "title": "Design a Ride Sharing Application",
+      "difficulty": "Medium",
+      "tags": [
+        "Real-time Systems",
+        "Geospatial Database",
+        "Microservices Architecture"
+      ],
+      "description": "Design a ride-sharing application that connects passengers with drivers, allowing for real-time booking and tracking of rides."
+    },
+    {
+      "id": "12",
+      "title": "Design a News Aggregator",
+      "difficulty": "Hard",
+      "tags": [
+        "microservices",
+        "realtime data processing",
+        "event-driven architecture"
+      ],
+      "description": "A news aggregator system that collects and displays news articles from various sources, with features like real-time updates, categorization, and user filtering."
+    },
+    {
+      "id": "13",
+      "title": "Design a Podcast Hosting Platform",
+      "difficulty": "Easy",
+      "tags": [
+        "cloud storage",
+        "audio processing",
+        "content delivery"
+      ],
+      "description": "Design a platform that enables podcasters to host, manage and distribute their audio content to listeners, while ensuring scalability, reliability, and monetization opportunities."
+    },
+    {
+      "id": "14",
+      "title": "Design a Payment Gateway",
+      "difficulty": "Medium",
+      "tags": [
+        "Payment Processing",
+        "API Integration",
+        "Security"
+      ],
+      "description": "Design a payment gateway that securely processes transactions, integrates with various payment methods, and provides flexibility for merchants to customize their checkout experiences."
+    },
+    {
+      "id": "15",
+      "title": "Design an Image Sharing App",
+      "difficulty": "Hard",
+      "tags": [
+        "cloud-storage",
+        "real-time-uploads",
+        "scalable-architecture"
+      ],
+      "description": "Design an image sharing app that allows users to share and discover visually appealing content, with features such as uploading, commenting, liking, and tagging."
+    },
+    {
+      "id": "16",
+      "title": "Design a Commenting System",
+      "difficulty": "Easy",
+      "tags": [
+        "architecture",
+        "database-design",
+        "scalability"
+      ],
+      "description": "Design a commenting system that allows users to post and view comments on various content, with features such as comment threading, moderation, and real-time updates."
+    },
+    {
+      "id": "17",
+      "title": "Design a URL Shortener",
+      "difficulty": "Medium",
+      "tags": [
+        "API",
+        "URL-shortening",
+        "Database"
+      ],
+      "description": "Design a URL Shortener that can handle high traffic and scalability, with features to track clicks and analytics."
+    },
+    {
+      "id": "18",
+      "title": "Design a Logging System",
+      "difficulty": "Hard",
+      "tags": [
+        "logging",
+        "system-design",
+        "microservices"
+      ],
+      "description": "Design a scalable and efficient logging system that can handle high volumes of log data from multiple microservices, with features for filtering, aggregation, and analytics"
+    },
+    {
+      "id": "19",
+      "title": "Design a Notification System",
+      "difficulty": "Easy",
+      "tags": [
+        "Microservices",
+        "Message Queue",
+        "Event Driven Architecture"
+      ],
+      "description": "Design a scalable and reliable notification system that can handle high volumes of messages and provide real-time updates to users, while also allowing for customization of notification types and frequencies."
+    },
+    {
+      "id": "20",
+      "title": "Design a Machine Learning Model Deployment Service",
+      "difficulty": "Medium",
+      "tags": [
+        "machine learning",
+        "model deployment",
+        "cloud computing"
+      ],
+      "description": "Design a scalable service to deploy trained machine learning models into production, handling model updates and serving requests efficiently."
+    },
+    {
+      "id": "21",
+      "title": "Design a CI/CD System",
+      "difficulty": "Hard",
+      "tags": [
+        "ci",
+        "cd",
+        "jenkins"
+      ],
+      "description": "Automate testing and deployment of software applications from development to production, ensuring continuous integration and delivery."
+    },
+    {
+      "id": "22",
+      "title": "Design a Monitoring and Alerting System",
+      "difficulty": "Easy",
+      "tags": [
+        "monitoring",
+        "alerting",
+        "distributed systems"
+      ],
+      "description": "A system that continuously monitors various metrics and logs across multiple components, triggering alerts when thresholds are exceeded or anomalies detected, to ensure proactive issue resolution and minimize downtime."
+    },
+    {
+      "id": "23",
+      "title": "Design a Job Queue System",
+      "difficulty": "Medium",
+      "tags": [
+        "Job Queue",
+        "Message Broker",
+        "Concurrency"
+      ],
+      "description": "Design a scalable system that processes and prioritizes jobs, allowing multiple workers to concurrently execute tasks while ensuring reliable processing and efficient handling of job failures."
+    },
+    {
+      "id": "24",
+      "title": "Design a Live Score Updating System",
+      "difficulty": "Hard",
+      "tags": [
+        "Real-time Data Processing",
+        "Event Sourcing",
+        "WebSockets"
+      ],
+      "description": "Design a system to update live scores for various sports and events, handling high traffic and real-time updates while maintaining accuracy and reliability."
+    },
+    {
+      "id": "25",
+      "title": "Design a Personal Finance Tracker",
+      "difficulty": "Easy",
+      "tags": [
+        "Real-time Data Processing",
+        "User Interface Design",
+        "Data Visualization"
+      ],
+      "description": "A personal finance tracker allows users to monitor and manage their financial activities, including income, expenses, budgets, and savings goals."
+    },
+    {
+      "id": "26",
+      "title": "Design a Public Transit Routing System",
+      "difficulty": "Medium",
+      "tags": [
+        "geospatial",
+        "algorithms",
+        "graphtheory"
+      ],
+      "description": "Design a system to optimize public transit routes, minimizing travel time and maximizing efficiency, while considering factors like traffic patterns, road closures, and real-time passenger demand."
+    },
+    {
+      "id": "27",
+      "title": "Design a Fitness Tracking App",
+      "difficulty": "Hard",
+      "tags": [
+        "System Design"
+      ],
+      "description": "A system design question about Design a Fitness Tracking App"
+    },
+    {
+      "id": "28",
+      "title": "Design a Food Delivery App",
+      "difficulty": "Easy",
+      "tags": [
+        "mobile app",
+        "real-time processing",
+        "location-based service"
+      ],
+      "description": "Design a mobile application that allows customers to order food from local restaurants and track the status of their orders in real-time, providing a seamless and efficient experience."
+    },
+    {
+      "id": "29",
+      "title": "Design a Blog Platform like Medium",
+      "difficulty": "Medium",
+      "tags": [
+        "Scalable Architecture",
+        "Content Management",
+        "Real-time Commenting"
+      ],
+      "description": "Design a blog platform that enables users to publish and share their stories, with features like real-time commenting and user engagement tracking, while ensuring scalability and reliability for millions of users."
+    },
+    {
+      "id": "30",
+      "title": "Design a Podcast Recommendation Engine",
+      "difficulty": "Hard",
+      "tags": [
+        "Content-Based Filtering",
+        "Natural Language Processing",
+        "Recommendation Systems"
+      ],
+      "description": "Design a podcast recommendation engine that suggests relevant episodes based on user listening history and preferences, taking into account factors such as genre, topic, and tone."
+    },
+    {
+      "id": "31",
+      "title": "Design a Messaging Queue System like Kafka",
+      "difficulty": "Easy",
+      "tags": [
+        "Distributed Systems",
+        "Message Queue",
+        "Publish-Subscribe"
+      ],
+      "description": "Design a scalable and fault-tolerant messaging queue system that enables high-throughput and low-latency communication between producers and consumers, with features like partitioning, replication, and offset management."
+    },
+    {
+      "id": "32",
+      "title": "Design a Travel Booking Aggregator",
+      "difficulty": "Medium",
+      "tags": [
+        "API Integration",
+        "Search Algorithm",
+        "Data Aggregation"
+      ],
+      "description": "Design a system that aggregates travel booking information from multiple sources, allowing users to search and compare prices across different travel websites."
+    },
+    {
+      "id": "33",
+      "title": "Design a Sports Event Management Platform",
+      "difficulty": "Hard",
+      "tags": [
+        "API",
+        "Real-time Data",
+        "Scalable Architecture"
+      ],
+      "description": "A platform to manage and analyze various aspects of sports events, including schedules, scores, player data, and venue information."
+    },
+    {
+      "id": "34",
+      "title": "Design a Document Scanning and OCR Service",
+      "difficulty": "Easy",
+      "tags": [
+        "OCR",
+        "Document Scanning",
+        "Cloud Computing"
+      ],
+      "description": "Design a scalable service that scans documents and performs Optical Character Recognition (OCR) to extract text data, suitable for cloud-based deployment"
+    },
+    {
+      "id": "35",
+      "title": "Design a Scalable Search Engine",
+      "difficulty": "Medium",
+      "tags": [
+        "Distributed Systems",
+        "Indexing",
+        "Caching"
+      ],
+      "description": "Design a search engine that can efficiently handle a large volume of queries and provide relevant results while minimizing latency, considering factors like scalability, reliability, and high availability."
+    },
+    {
+      "id": "36",
+      "title": "Design a Hospital Appointment Booking System",
+      "difficulty": "Hard",
+      "tags": [
+        "Microservices",
+        "API Gateway",
+        "Event Sourcing"
+      ],
+      "description": "Design a Hospital Appointment Booking System that allows patients to schedule appointments with various medical specialists, considering different time slots and availability of doctors."
+    },
+    {
+      "id": "37",
+      "title": "Design an Interview Scheduling Platform",
+      "difficulty": "Easy",
+      "tags": [
+        "Scheduling",
+        "Calendar",
+        "Real-time"
+      ],
+      "description": "Design a platform that allows candidates and interviewers to schedule interviews efficiently, considering various constraints such as availability, location, and time zones."
+    },
+    {
+      "id": "38",
+      "title": "Design a Time Tracking System for Remote Teams",
+      "difficulty": "Medium",
+      "tags": [
+        "real-time collaboration",
+        "cloud-based architecture",
+        "machine learning"
+      ],
+      "description": "The system should enable remote teams to track time spent on various tasks and projects, allowing for seamless collaboration, accurate billing, and data-driven decision making."
+    },
+    {
+      "id": "39",
+      "title": "Design a Resume Parsing Service",
+      "difficulty": "Hard",
+      "tags": [
+        "natural language processing",
+        "text analysis",
+        "data processing"
+      ],
+      "description": "The Resume Parsing Service aims to extract relevant information from a resume, such as skills, experience, and education, to facilitate job matching and applicant tracking."
+    },
+    {
+      "id": "40",
+      "title": "Design a Smart Home Hub Controller",
+      "difficulty": "Easy",
+      "tags": [
+        "iot",
+        "home automation",
+        "middleware"
+      ],
+      "description": "A Smart Home Hub Controller is a centralized device that integrates and controls various smart devices, providing a seamless user experience and enhancing home automation."
+    },
+    {
+      "id": "41",
+      "title": "Design a Real-Time Stock Price Tracker",
+      "difficulty": "Medium",
+      "tags": [
+        "Real-Time",
+        "Stock Price",
+        "Streaming Data"
+      ],
+      "description": "Design a system that continuously tracks and updates stock prices in real-time, providing instantaneous insights to users."
+    },
+    {
+      "id": "42",
+      "title": "Design an E-commerce Recommendation System",
+      "difficulty": "Hard",
+      "tags": [
+        "recommendation system",
+        "collaborative filtering",
+        "content-based filtering"
+      ],
+      "description": "Design a recommendation system for an e-commerce platform that suggests products to customers based on their purchase history and browsing behavior, incorporating aspects of collaborative and content-based filtering."
+    },
+    {
+      "id": "43",
+      "title": "Design a Version Control System like Git",
+      "difficulty": "Easy",
+      "tags": [
+        "Distributed Systems",
+        "Data Structures",
+        "Concurrency"
+      ],
+      "description": "Design a Version Control System that efficiently manages large-scale software development, allowing multiple users to collaborate and track changes across various branches and commits"
+    },
+    {
+      "id": "44",
+      "title": "Design a Digital Wallet System",
+      "difficulty": "Medium",
+      "tags": [
+        "Blockchain",
+        "API Integration",
+        "Cloud Storage"
+      ],
+      "description": "Design a digital wallet system that securely stores and manages user financial information, allowing for seamless transactions and integration with various payment platforms."
+    },
+    {
+      "id": "45",
+      "title": "Design a Voice Assistant Backend",
+      "difficulty": "Hard",
+      "tags": [
+        "Natural Language Processing",
+        "API Design",
+        "Cloud Computing"
+      ],
+      "description": "Design a scalable and secure backend system for a voice assistant that integrates with multiple devices, providing personalized experiences to users."
+    },
+    {
+      "id": "46",
+      "title": "Design a Global Weather Forecasting Platform",
+      "difficulty": "Easy",
+      "tags": [
+        "Cloud Computing",
+        "Big Data Analytics",
+        "Real-Time Processing"
+      ],
+      "description": "The Global Weather Forecasting Platform aims to collect and analyze weather data from various sources, providing accurate and timely forecasts for global users."
+    },
+    {
+      "id": "47",
+      "title": "Design an Online Voting Platform",
+      "difficulty": "Medium",
+      "tags": [
+        "Distributed Systems",
+        "Security",
+        "Data Analytics"
+      ],
+      "description": "An online voting platform requires a scalable and secure system to handle multiple users, manage election processes, and provide real-time results, while ensuring the integrity of votes and protecting sensitive information."
+    },
+    {
+      "id": "48",
+      "title": "Design a Survey Collection and Analysis Tool",
+      "difficulty": "Hard",
+      "tags": [
+        "Survey",
+        "Data Analysis",
+        "Web Application"
+      ],
+      "description": "A system designed to collect, store, and analyze survey data from various sources, providing insights and visualization tools for users"
+    },
+    {
+      "id": "49",
+      "title": "Design a Public Issue Reporting App for Cities",
+      "difficulty": "Easy",
+      "tags": [
+        "location-based services",
+        "citizen engagement",
+        "data visualization"
+      ],
+      "description": "Design a mobile app that enables citizens to report public issues such as potholes, streetlights outages, and traffic congestion, allowing cities to track and resolve these problems efficiently."
+    },
+    {
+      "id": "50",
+      "title": "Design a Remote Team Collaboration Dashboard",
+      "difficulty": "Medium",
+      "tags": [
+        "Realtime Collaboration",
+        "WebSockets",
+        "Agile Project Management"
+      ],
+      "description": "Design a remote team collaboration dashboard that enables real-time communication, task assignment, and progress tracking for distributed teams to increase productivity and reduce misunderstandings."
+    }
+  ]

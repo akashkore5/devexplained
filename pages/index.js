@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { motion } from "framer-motion";
-import Layout from "../components/Layout";
 import Head from "next/head";
 import { useState } from "react";
+import { motion } from "framer-motion";
+import Layout from "../components/Layout";
 import { toast, Toaster } from "react-hot-toast";
+import { CodeBracketIcon, ChartBarIcon, UsersIcon, PuzzlePieceIcon, RocketLaunchIcon } from "@heroicons/react/24/solid";
+import DOMPurify from "isomorphic-dompurify";
 
 export default function Home() {
   const [email, setEmail] = useState("");
@@ -16,12 +18,17 @@ export default function Home() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "LeetcodeSolve",
-    url: "https://devexplained.vercel.app/",
+    url: "https://leetcodesolve.vercel.app/",
+    description: "Master coding interviews with Leetcode solutions and system design guides.",
+    publisher: {
+      "@type": "Organization",
+      name: "LeetcodeSolve Team",
+    },
     potentialAction: {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: "https://devexplained.vercel.app/search?q={search_term_string}",
+        urlTemplate: "https://leetcodesolve.vercel.app/search?q={search_term_string}",
       },
       "query-input": "required name=search_term_string",
     },
@@ -67,43 +74,62 @@ export default function Home() {
   return (
     <Layout>
       <Head>
-        <title>LeetcodeSolve - Master Coding with Expert Leetcode Solutions</title>
+        <title>LeetcodeSolve - Master Coding & System Design</title>
         <meta
           name="description"
-          content="Master coding interviews with LeetcodeSolve's detailed Leetcode solutions in C++ and Python, expert tutorials, and community support."
+          content="Master coding interviews with LeetcodeSolve's expert Leetcode solutions in C++ and Python, system design guides, and community support."
         />
         <meta
           name="keywords"
-          content="Leetcode solutions, coding interviews, algorithms, data structures, C++, Python, coding tutorials"
+          content="Leetcode solutions, system design, coding interviews, algorithms, data structures, C++, Python, coding tutorials, interview prep"
         />
         <meta name="author" content="LeetcodeSolve Team" />
         <meta name="robots" content="index, follow" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        <meta property="og:title" content="LeetcodeSolve - Master Coding with Expert Leetcode Solutions" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+          property="og:title"
+          content="LeetcodeSolve - Master Coding & System Design"
+        />
         <meta
           property="og:description"
-          content="Explore detailed Leetcode solutions, tutorials, and interview prep resources to excel in coding interviews."
+          content="Prepare for technical interviews with Leetcode solutions, system design tutorials, and coding challenges."
         />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://devexplained.vercel.app/" />
-        <meta property="og:image" content="https://devexplained.vercel.app/og-image.jpg" />
-        <meta property="og:image:alt" content="LeetcodeSolve coding platform preview" />
+        <meta property="og:url" content="https://leetcodesolve.vercel.app/" />
+        <meta
+          property="og:image"
+          content="https://leetcodesolve.vercel.app/og-image.jpg"
+        />
+        <meta
+          property="og:image:alt"
+          content="LeetcodeSolve coding and system design platform preview"
+        />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="LeetcodeSolve - Master Coding with Expert Leetcode Solutions" />
+        <meta
+          name="twitter:title"
+          content="LeetcodeSolve - Master Coding & System Design"
+        />
         <meta
           name="twitter:description"
-          content="Level up your coding skills with LeetcodeSolve's expert solutions and tutorials."
+          content="Level up your coding and system design skills with LeetcodeSolve's expert resources."
         />
-        <meta name="twitter:image" content="https://devexplained.vercel.app/twitter-image.jpg" />
-        <meta name="twitter:image:alt" content="LeetcodeSolve coding platform preview" />
-        <link rel="canonical" href="https://devexplained.vercel.app/" />
+        <meta
+          name="twitter:image"
+          content="https://leetcodesolve.vercel.app/twitter-image.jpg"
+        />
+        <meta
+          name="twitter:image:alt"
+          content="LeetcodeSolve coding and system design platform preview"
+        />
+        <link rel="canonical" href="https://leetcodesolve.vercel.app/" />
         <link rel="icon" href="/favicon.ico" type="image/x-icon" />
-        <meta name="format-detection" content="telephone=no" />
         <meta name="theme-color" content="#4f46e5" />
-        <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
-        <meta name="google-site-verification" content="your-google-verification-code" />
-        <meta name="bing-site-verification" content="your-bing-verification-code" />
-        <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(JSON.stringify(structuredData)),
+          }}
+        />
       </Head>
 
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
@@ -117,7 +143,7 @@ export default function Home() {
             transition={{ duration: 0.8 }}
             className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-800 dark:text-gray-100 mb-4 sm:mb-6"
           >
-            Master Coding with <span className="text-indigo-600 dark:text-indigo-400">LeetcodeSolve</span>
+            Master Coding & <span className="text-indigo-600 dark:text-indigo-400">System Design</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
@@ -125,19 +151,28 @@ export default function Home() {
             transition={{ delay: 0.3, duration: 0.8 }}
             className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-6 sm:mb-8 max-w-3xl mx-auto"
           >
-            Explore detailed Leetcode solutions, ace coding interviews, and level up with tutorials in C++ and Python.
+            Ace technical interviews with expert Leetcode solutions and comprehensive system design guides.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.5, duration: 0.5 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center"
           >
             <Link href="/leetcode" prefetch={false}>
               <button
                 className="px-6 py-3 sm:px-8 sm:py-4 bg-indigo-600 text-white rounded-full text-base sm:text-lg font-semibold hover:bg-indigo-700 dark:hover:bg-indigo-500 transition shadow-md hover:scale-105 transform focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 aria-label="Start solving Leetcode problems"
               >
-                Start Solving Now
+                Explore Leetcode
+              </button>
+            </Link>
+            <Link href="/system-design" prefetch={false}>
+              <button
+                className="px-6 py-3 sm:px-8 sm:py-4 bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 border border-indigo-600 dark:border-indigo-400 rounded-full text-base sm:text-lg font-semibold hover:bg-indigo-50 dark:hover:bg-slate-600 transition shadow-md hover:scale-105 transform focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                aria-label="Learn system design"
+              >
+                Learn System Design
               </button>
             </Link>
           </motion.div>
@@ -150,50 +185,42 @@ export default function Home() {
           <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-8 sm:mb-12">
             Why Choose LeetcodeSolve?
           </h2>
-          <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[
               {
                 title: "Detailed Solutions",
                 description: "In-depth explanations with code in C++ and Python for every Leetcode problem.",
-                icon: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z",
+                icon: <CodeBracketIcon className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600 dark:text-indigo-400 mb-4" />,
+              },
+              {
+                title: "System Design Guides",
+                description: "Comprehensive tutorials on designing scalable systems like URL shorteners and messaging apps.",
+                icon: <RocketLaunchIcon className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600 dark:text-indigo-400 mb-4" />,
               },
               {
                 title: "Interview Prep",
                 description: "Curated resources to master algorithms, data structures, and system design.",
-                icon: "M19 14v3h-7v-7h7v4zm0-9v4h-7V5h7zM5 5v12h7v-7H5v-5zm14 0h2v12h-2zM3 5H1v12h2z",
+                icon: <PuzzlePieceIcon className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600 dark:text-indigo-400 mb-4" />,
               },
               {
                 title: "Community Support",
                 description: "Join a community of coders to discuss solutions and share insights.",
-                icon: "M18 13c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6v4l5-5-5-5v4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8h-2z",
+                icon: <UsersIcon className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600 dark:text-indigo-400 mb-4" />,
               },
               {
                 title: "Progress Tracking",
                 description: "Monitor your coding journey with personalized dashboards and analytics.",
-                icon: "M21 6H3v2h18V6zm0 5H3v2h18v-2zm0 5H3v2h18v-2z",
+                icon: <ChartBarIcon className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600 dark:text-indigo-400 mb-4" />,
               },
             ].map((feature, index) => (
               <motion.div
                 key={`feature-${index}`}
                 variants={cardVariants}
                 initial="hidden"
-                animate="visible" // Changed from whileInView to prevent scroll re-trigger
-                className="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-md hover:shadow-lg transition transform hover:-translate-y-1"
+                animate="visible"
+                className="p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-md hover:shadow-lg transition transform hover:-translate-y-1"
               >
-                <svg
-                  className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600 dark:text-indigo-400 mb-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d={feature.icon}
-                  />
-                </svg>
+                {feature.icon}
                 <h3 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">{feature.title}</h3>
                 <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base">{feature.description}</p>
               </motion.div>
@@ -206,10 +233,10 @@ export default function Home() {
       <section className="py-12 sm:py-16 bg-indigo-50 dark:bg-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-8 sm:mb-12">Our Impact</h2>
-          <div className="flex flex-col sm:grid sm:grid-cols-4 gap-6 sm:gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8">
             {[
               { label: "Problems Solved", value: 5000 },
-              { label: "Languages Supported", value: 3 },
+              { label: "Design Guides", value: 50 },
               { label: "Happy Learners", value: 10000 },
               { label: "Community Members", value: 500 },
             ].map((stat, index) => (
@@ -217,7 +244,7 @@ export default function Home() {
                 key={`stat-${index}`}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
                 className="p-4"
               >
                 <p className="text-3xl sm:text-4xl font-bold text-indigo-600 dark:text-indigo-400">
@@ -236,18 +263,18 @@ export default function Home() {
           <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-8 sm:mb-12">
             What Our Users Say
           </h2>
-          <div className="flex flex-col sm:grid sm:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[
               {
-                quote: "LeetcodeSolve helped me understand complex algorithms with clear explanations!",
+                quote: "LeetcodeSolve’s clear explanations made complex algorithms so much easier!",
                 author: "Jane Doe, Software Engineer",
               },
               {
-                quote: "The multi-language solutions saved me hours during interview prep.",
+                quote: "The system design guides were a game-changer for my interviews.",
                 author: "John Smith, CS Student",
               },
               {
-                quote: "The community support is amazing for tackling tough problems!",
+                quote: "Amazing community support for tackling tough problems!",
                 author: "Emily Chen, Developer",
               },
             ].map((testimonial, index) => (
@@ -255,8 +282,8 @@ export default function Home() {
                 key={`testimonial-${index}`}
                 variants={cardVariants}
                 initial="hidden"
-                animate="visible" // Changed from whileInView
-                className="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-md"
+                animate="visible"
+                className="p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-md hover:shadow-lg transition"
               >
                 <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm sm:text-base">"{testimonial.quote}"</p>
                 <p className="text-indigo-600 dark:text-indigo-400 font-semibold text-sm sm:text-base">
@@ -273,7 +300,7 @@ export default function Home() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">Stay Updated</h2>
           <p className="text-gray-600 dark:text-gray-300 mb-6 sm:mb-8 text-sm sm:text-base">
-            Subscribe to get the latest tutorials and solutions.
+            Subscribe for the latest Leetcode solutions and system design tutorials.
           </p>
           <form
             onSubmit={handleSubscribe}
@@ -291,7 +318,7 @@ export default function Home() {
             />
             <button
               type="submit"
-              className="px-6 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 dark:hover:bg-indigo-500 transition hover:scale-105 transform focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-6 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 dark:hover:bg-indigo-500 transition hover:scale-105 transform focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
               aria-label="Subscribe to newsletter"
             >
               Subscribe

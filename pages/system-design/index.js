@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/router";
 import questions from "../../data/system_design_questions.json";
 import Link from "next/link";
@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import Layout from "../../components/Layout";
 import Head from "next/head";
 import DOMPurify from "isomorphic-dompurify";
+import { useSession } from "next-auth/react";
+import { toast, Toaster } from "react-hot-toast";
 import {
   ChevronUpIcon,
   ChevronDownIcon,
@@ -15,10 +17,13 @@ import {
   DocumentTextIcon,
   TableCellsIcon,
   ListBulletIcon,
+  CheckCircleIcon,
+  HeartIcon,
 } from "@heroicons/react/24/solid";
 
-export default function SystemDesign() {
+export default function SystemDesign({ initialViewMode = "table" }) {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState("");
   const [tag, setTag] = useState("");
@@ -29,12 +34,42 @@ export default function SystemDesign() {
   const [isDifficultyOpen, setIsDifficultyOpen] = useState(false);
   const [isTagOpen, setIsTagOpen] = useState(false);
   const [isPerPageOpen, setIsPerPageOpen] = useState(false);
-  const [viewMode, setViewMode] = useState("list");
+  const [viewMode, setViewMode] = useState(initialViewMode);
   const [userToggledView, setUserToggledView] = useState(false);
+  const [solvedQuestions, setSolvedQuestions] = useState([]);
+  const [taggedQuestions, setTaggedQuestions] = useState([]);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const difficultyRef = useRef(null);
   const tagRef = useRef(null);
   const perPageRef = useRef(null);
+
+  // Fetch user's progress
+  useEffect(() => {
+    if (status !== "authenticated") return;
+
+    const fetchProgress = async () => {
+      try {
+        const response = await fetch("/api/user/progress/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "systemdesign", action: "all" }),
+        });
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+        const data = await response.json();
+        if (!data || typeof data !== "object") throw new Error("Invalid API response");
+        const solved = (data.solved || []).map(Number);
+        const tagged = (data.tagged || []).map(Number);
+        setSolvedQuestions(solved);
+        setTaggedQuestions(tagged);
+      } catch (error) {
+        console.error("Error fetching progress:", error);
+        toast.error("Failed to load progress");
+      }
+    };
+
+    fetchProgress();
+  }, [status]);
 
   // Handle tag query parameter
   useEffect(() => {
@@ -64,7 +99,7 @@ export default function SystemDesign() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Debounced resize handler for view mode
+  // Handle resize for view mode
   useEffect(() => {
     let timeout;
     const handleResize = () => {
@@ -193,14 +228,14 @@ export default function SystemDesign() {
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case "Easy":
-        return "bg-green-100 dark:bg-green-100 text-green-800 border-green-200 hover:bg-green-400 dark:hover:bg-green-400";
-      case "Medium":
-        return "bg-yellow-100 dark:bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-400 dark:hover:bg-yellow-400";
-      case "Hard":
-        return "bg-red-100 dark:bg-red-100 text-red-800 border-red-200 hover:bg-red-400 dark:hover:bg-red-400";
+      case "Beginner":
+        return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 hover:bg-green-200 dark:hover:bg-green-800";
+      case "Intermediate":
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 hover:bg-yellow-200 dark:hover:bg-yellow-800";
+      case "Advanced":
+        return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-200 hover:bg-red-200 dark:hover:bg-red-800";
       default:
-        return "bg-gray-100 dark:bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200 border-gray-200";
     }
   };
 
@@ -213,6 +248,80 @@ export default function SystemDesign() {
     setUserToggledView(true);
   };
 
+  const handleMarkSolved = useCallback(
+    async (id, isSolved) => {
+      if (status !== "authenticated") {
+        setIsLoginModalOpen(true);
+        return;
+      }
+
+      const numericId = Number(id);
+      try {
+        const response = await fetch("/api/user/progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "systemdesign",
+            action: "solved",
+            id: numericId,
+            remove: isSolved,
+          }),
+        });
+        if (response.ok) {
+          setSolvedQuestions((prev) =>
+            isSolved
+              ? prev.filter((qid) => qid !== numericId)
+              : [...prev, numericId]
+          );
+          toast.success(isSolved ? "Question unmarked as solved" : "Question marked as solved");
+        } else {
+          toast.error("Failed to update solved status");
+        }
+      } catch (error) {
+        console.error("Error updating solved status:", error);
+        toast.error("An error occurred");
+      }
+    },
+    [status]
+  );
+
+  const handleTagQuestion = useCallback(
+    async (id, isTagged) => {
+      if (status !== "authenticated") {
+        setIsLoginModalOpen(true);
+        return;
+      }
+
+      const numericId = Number(id);
+      try {
+        const response = await fetch("/api/user/progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "systemdesign",
+            action: "tagged",
+            id: numericId,
+            remove: isTagged,
+          }),
+        });
+        if (response.ok) {
+          setTaggedQuestions((prev) =>
+            isTagged
+              ? prev.filter((qid) => qid !== numericId)
+              : [...prev, numericId]
+          );
+          toast.success(isTagged ? "Question untagged" : "Question tagged");
+        } else {
+          toast.error("Failed to update tag status");
+        }
+      } catch (error) {
+        console.error("Error updating tag status:", error);
+        toast.error("An error occurred");
+      }
+    },
+    [status]
+  );
+
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
@@ -220,19 +329,24 @@ export default function SystemDesign() {
 
   const difficultyVariants = {
     hidden: { scale: 0, opacity: 0 },
-    visible: (difficulty) => ({
+    visible: {
       scale: 1,
       opacity: 1,
-      transition: {
-        duration: 0.5,
-        type: "spring",
-        stiffness: 100,
-      },
-    }),
+      transition: { duration: 0.5, type: "spring", stiffness: 100 },
+    },
+  };
+
+  const iconVariants = {
+    initial: { scale: 1 },
+    hover: { scale: 1.2 },
+    tap: { scale: 0.9 },
   };
 
   return (
-    <Layout>
+    <Layout
+      isLoginModalOpen={isLoginModalOpen}
+      setIsLoginModalOpen={setIsLoginModalOpen}
+    >
       <Head>
         <title>
           {`System Design Questions - ${search || "All"} Topics | SystemDesignGuide`}
@@ -304,14 +418,14 @@ export default function SystemDesign() {
           }}
         />
       </Head>
-
+      <Toaster />
       <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Filters Section */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-8"
+          className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 mb-8"
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 sm:flex-nowrap">
             <div className="relative flex-grow min-w-[150px] mb-3 sm:mb-0">
@@ -323,7 +437,7 @@ export default function SystemDesign() {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300 shadow-sm hover:shadow-md pr-10 text-sm"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300 shadow-sm hover:shadow-md pr-10 text-sm"
                 aria-label="Search system design questions"
               />
               {search && (
@@ -339,7 +453,7 @@ export default function SystemDesign() {
             <div className="relative w-full sm:w-36 mb-3 sm:mb-0" ref={difficultyRef}>
               <button
                 onClick={() => setIsDifficultyOpen(!isDifficultyOpen)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-left flex justify-between items-center transition-all duration-300 shadow-sm hover:shadow-md text-sm truncate"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-gray-100 text-left flex justify-between items-center transition-all duration-300 shadow-sm hover:shadow-md text-sm truncate"
                 aria-label="Select difficulty"
               >
                 <span className="truncate">{truncateText(difficulty || "Difficulty")}</span>
@@ -358,7 +472,7 @@ export default function SystemDesign() {
                       className={`w-4 h-4 text-gray-500 dark:text-gray-400 transform transition-transform ${isDifficultyOpen ? "rotate-180" : ""}`}
                       fill="none"
                       stroke="currentColor"
-                      viewBox="0 0 24 24"
+                      viewBox="0 24"
                     >
                       <path
                         strokeLinecap="round"
@@ -377,7 +491,7 @@ export default function SystemDesign() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute z-10 mt-2 w-full rounded-lg bg-white dark:bg-gray-800 shadow-xl border border-gray-300 dark:border-gray-600 overflow-hidden"
+                    className="absolute z-10 mt-2 w-full rounded-lg bg-white dark:bg-slate-800 shadow-xl border border-gray-300 dark:border-gray-600 overflow-hidden"
                   >
                     {["All", "Beginner", "Intermediate", "Advanced"].map((option) => (
                       <button
@@ -394,7 +508,7 @@ export default function SystemDesign() {
                             updateQuery(newQuery);
                           }
                         }}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+                        className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200"
                       >
                         {option}
                       </button>
@@ -406,7 +520,7 @@ export default function SystemDesign() {
             <div className="relative w-full sm:w-36 mb-3 sm:mb-0" ref={tagRef}>
               <button
                 onClick={() => setIsTagOpen(!isTagOpen)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-left flex justify-between items-center transition-all duration-300 shadow-sm hover:shadow-md text-sm truncate"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-gray-100 text-left flex justify-between items-center transition-all duration-300 shadow-sm hover:shadow-md text-sm truncate"
                 aria-label="Select topic"
               >
                 <span className="truncate">{truncateText(tag || "Topics")}</span>
@@ -444,7 +558,7 @@ export default function SystemDesign() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute z-10 mt-2 w-full rounded-lg bg-white dark:bg-gray-800 shadow-xl border border-gray-300 dark:border-gray-600 overflow-y-auto max-h-60"
+                    className="absolute z-10 mt-2 w-full rounded-lg bg-white dark:bg-slate-800 shadow-xl border border-gray-300 dark:border-gray-600 overflow-y-auto max-h-60"
                   >
                     {allTags.map((t) => (
                       <button
@@ -461,7 +575,7 @@ export default function SystemDesign() {
                             updateQuery(newQuery);
                           }
                         }}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+                        className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200"
                       >
                         {t}
                       </button>
@@ -474,12 +588,12 @@ export default function SystemDesign() {
               <div className="relative flex-grow sm:w-36" ref={perPageRef}>
                 <button
                   onClick={() => setIsPerPageOpen(!isPerPageOpen)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-left flex justify-between items-center transition-all duration-300 shadow-sm hover:shadow-md text-sm truncate"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-gray-100 text-left flex justify-between items-center transition-all duration-300 shadow-sm hover:shadow-md text-sm truncate"
                   aria-label="Select questions per page"
                 >
                   <span className="truncate">{truncateText(`${perPage} / Page`)}</span>
                   <span className="flex-shrink-0 w-4 h-4">
-                    {perPage !== 10 ? (
+                    {perPage !== 15 ? (
                       <XMarkIcon
                         className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                         onClick={(e) => {
@@ -512,7 +626,7 @@ export default function SystemDesign() {
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: -10 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute z-10 mt-2 w-full rounded-lg bg-white dark:bg-gray-800 shadow-xl border border-gray-300 dark:border-gray-600 overflow-hidden"
+                      className="absolute z-10 mt-2 w-full rounded-lg bg-white dark:bg-slate-800 shadow-xl border border-gray-300 dark:border-gray-600 overflow-hidden"
                     >
                       {[15, 25, 50, 100].map((value) => (
                         <button
@@ -522,7 +636,7 @@ export default function SystemDesign() {
                             setPage(1);
                             setIsPerPageOpen(false);
                           }}
-                          className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+                          className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200"
                         >
                           {value} / page
                         </button>
@@ -533,7 +647,7 @@ export default function SystemDesign() {
               </div>
               <button
                 onClick={toggleViewMode}
-                className="p-2 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm hover:shadow-md w-10 h-10 flex items-center justify-center flex-shrink-0"
+                className="p-2 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200 shadow-sm hover:shadow-md w-10 h-10 flex items-center justify-center flex-shrink-0"
                 aria-label={`Switch to ${viewMode === "list" ? "table" : "list"} view`}
               >
                 {viewMode === "list" ? (
@@ -568,13 +682,37 @@ export default function SystemDesign() {
                       onClick={() => router.push(`/system-design/${id}`)}
                     >
                       <div className="flex flex-col">
-                        <Link
-                          href={`/system-design/${id}`}
-                          className="text-xl font-semibold text-indigo-600 dark:text-indigo-400 hover:underline mb-2"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {id}. {title}
-                        </Link>
+                        <div className="flex items-center justify-between">
+                          <Link
+                            href={`/system-design/${id}`}
+                            className="text-xl font-semibold text-indigo-600 dark:text-indigo-400 hover:underline mb-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {id}. {title}
+                          </Link>
+                          <motion.button
+                            variants={iconVariants}
+                            initial="initial"
+                            whileHover="hover"
+                            whileTap="tap"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkSolved(id, solvedQuestions.includes(Number(id)));
+                            }}
+                            className={`rounded-full p-1 ${
+                              solvedQuestions.includes(Number(id))
+                                ? "bg-green-500 text-white"
+                                : "bg-gray-200 text-gray-500"
+                            }`}
+                            aria-label={
+                              solvedQuestions.includes(Number(id))
+                                ? "Unmark as solved"
+                                : "Mark as solved"
+                            }
+                          >
+                            <CheckCircleIcon className="w-6 h-6" />
+                          </motion.button>
+                        </div>
                         <div className="flex items-center mt-2">
                           <motion.div
                             initial="hidden"
@@ -619,6 +757,40 @@ export default function SystemDesign() {
                             </Link>
                           ))}
                         </div>
+                        <div className="flex gap-3 mt-4">
+                          <motion.button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkSolved(id, solvedQuestions.includes(Number(id)));
+                            }}
+                            className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-800 dark:to-indigo-900 text-white rounded-lg shadow-md hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            aria-label={
+                              solvedQuestions.includes(Number(id))
+                                ? "Unmark as solved"
+                                : "Mark as solved"
+                            }
+                          >
+                            <CheckCircleIcon className="w-5 h-5 mr-2" />
+                            {solvedQuestions.includes(Number(id)) ? "Unmark Solved" : "Mark as Solved"}
+                          </motion.button>
+                          <motion.button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTagQuestion(id, taggedQuestions.includes(Number(id)));
+                            }}
+                            className="flex items-center px-4 py-2 bg-gradient-to-r from-pink-600 to-pink-700 dark:from-pink-800 dark:to-pink-900 text-white rounded-lg shadow-md hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            aria-label={
+                              taggedQuestions.includes(Number(id)) ? "Untag question" : "Tag question"
+                            }
+                          >
+                            <HeartIcon className="w-5 h-5 mr-2" />
+                            {taggedQuestions.includes(Number(id)) ? "Untag" : "Tag"}
+                          </motion.button>
+                        </div>
                       </div>
                     </motion.li>
                   ))
@@ -629,44 +801,75 @@ export default function SystemDesign() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden"
+                className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden"
               >
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-100 dark:bg-gray-700">
+                    <thead className="bg-gray-100 dark:bg-slate-700">
                       <tr>
-                        {["title", "difficulty", "topics", "article"].map((column) => (
-                          <th
-                            key={column}
-                            scope="col"
-                            className={`px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider ${
-                              column === "title" || column === "difficulty"
-                                ? "cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200"
-                                : ""
-                            }`}
-                            onClick={() =>
-                              (column === "title" || column === "difficulty") && handleSort(column)
-                            }
-                          >
-                            <div className="flex items-center gap-2">
-                              {column.charAt(0).toUpperCase() + column.slice(1)}
-                              {sortColumn === column && sortDirection && (
-                                sortDirection === "asc" ? (
-                                  <ChevronUpIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
-                                ) : (
-                                  <ChevronDownIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
-                                )
-                              )}
-                            </div>
-                          </th>
-                        ))}
+                        <th
+                          scope="col"
+                          className="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider w-12"
+                        >
+                          Status
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600 transition-all duration-200"
+                          onClick={() => handleSort("title")}
+                        >
+                          <div className="flex items-center gap-2">
+                            Title
+                            {sortColumn === "title" && sortDirection && (
+                              sortDirection === "asc" ? (
+                                <ChevronUpIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                              ) : (
+                                <ChevronDownIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                              )
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600 transition-all duration-200"
+                          onClick={() => handleSort("difficulty")}
+                        >
+                          <div className="flex items-center gap-2">
+                            Difficulty
+                            {sortColumn === "difficulty" && sortDirection && (
+                              sortDirection === "asc" ? (
+                                <ChevronUpIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                              ) : (
+                                <ChevronDownIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                              )
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+                        >
+                          Topics
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider w-12"
+                        >
+                          Tag/Like
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider w-12"
+                        >
+                          Article
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                       {paginated.length === 0 ? (
                         <tr>
                           <td
-                            colSpan="4"
+                            colSpan="6"
                             className="px-4 py-8 text-center text-gray-500 dark:text-gray-400 text-lg"
                           >
                             No questions found. Try adjusting your filters.
@@ -679,8 +882,34 @@ export default function SystemDesign() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3 }}
-                            className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
+                            className="hover:bg-gray-50 dark:hover:bg-slate-900 transition-all duration-200"
                           >
+                            <td className="px-4 py-4 w-12">
+                              <motion.button
+                                variants={iconVariants}
+                                initial="initial"
+                                whileHover="hover"
+                                whileTap="tap"
+                                onClick={() =>
+                                  handleMarkSolved(
+                                    question.id,
+                                    solvedQuestions.includes(Number(question.id))
+                                  )
+                                }
+                                className={`rounded-full p-1 ${
+                                  solvedQuestions.includes(Number(question.id))
+                                    ? "bg-green-500 text-white"
+                                    : "bg-gray-200 text-gray-500"
+                                }`}
+                                aria-label={
+                                  solvedQuestions.includes(Number(question.id))
+                                    ? "Unmark as solved"
+                                    : "Mark as solved"
+                                }
+                              >
+                                <CheckCircleIcon className="w-6 h-6" />
+                              </motion.button>
+                            </td>
                             <td className="px-4 py-4 text-sm">
                               <Link
                                 href={`/system-design/${question.id}`}
@@ -695,7 +924,7 @@ export default function SystemDesign() {
                                   href={`/system-design?difficulty=${encodeURIComponent(
                                     question.difficulty
                                   )}`}
-                                  className={`inline-block text-center px-1.5 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border transition-all duration-200 truncate max-w-[80px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${getDifficultyColor(
+                                  className={`inline-block text-center px-1.5 py-1 rounded-lg text-xs font-medium border transition-all duration-200 truncate max-w-[80px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${getDifficultyColor(
                                     question.difficulty
                                   )}`}
                                   title={question.difficulty}
@@ -705,13 +934,16 @@ export default function SystemDesign() {
                                 </Link>
                               </div>
                             </td>
-                            <td className="px-4 py-4">
-                              <div className="flex flex-wrap gap-2 sm:gap-1">
+                            <td className="px-4 py-4 min-w-[150px] max-w-[250px]">
+                              <div
+                                className="flex flex-wrap gap-2 sm:gap-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600"
+                                aria-label="Question tags"
+                              >
                                 {question.tags?.map((t) => (
                                   <Link
                                     key={t}
                                     href={`/system-design?tag=${encodeURIComponent(t)}`}
-                                    className={`inline-block text-center px-1 py-0.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 transition-all duration-200 truncate max-w-[100px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${
+                                    className={`inline-block text-center px-1 py-0.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600 border border-gray-200 dark:border-gray-600 transition-all duration-200 truncate max-w-[100px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${
                                       t.length > 15 ? "text-[10px]" : ""
                                     }`}
                                     onClick={() => setPage(1)}
@@ -723,7 +955,33 @@ export default function SystemDesign() {
                                 ))}
                               </div>
                             </td>
-                            <td className="px-4 py-4">
+                            <td className="px-4 py-4 w-12">
+                              <motion.button
+                                variants={iconVariants}
+                                initial="initial"
+                                whileHover="hover"
+                                whileTap="tap"
+                                onClick={() =>
+                                  handleTagQuestion(
+                                    question.id,
+                                    taggedQuestions.includes(Number(question.id))
+                                  )
+                                }
+                                className={`p-1 ${
+                                  taggedQuestions.includes(Number(question.id))
+                                    ? "text-green-500"
+                                    : "text-gray-400"
+                                }`}
+                                aria-label={
+                                  taggedQuestions.includes(Number(question.id))
+                                    ? "Untag question"
+                                    : "Tag question"
+                                }
+                              >
+                                <HeartIcon className="w-6 h-6" />
+                              </motion.button>
+                            </td>
+                            <td className="px-4 py-4 w-12">
                               <Link
                                 href={`/system-design/${question.id}`}
                                 className="inline-flex justify-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-all duration-200 w-full"
@@ -750,7 +1008,7 @@ export default function SystemDesign() {
               transition={{ delay: 0.3, duration: 0.5 }}
               className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden sticky top-6 max-h-[calc(100vh-3rem)]"
             >
-              <div className="sticky top-0 bg-white dark:bg-slate-800 z-10 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="sticky top-0 bg-white dark:bg-slate-800 z-10 px-6 py-4 border-b border-gray-200 dark:border-slate-700">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
                   Popular Topics
                 </h3>
@@ -802,7 +1060,7 @@ export default function SystemDesign() {
               <button
                 onClick={() => handlePageChange(page - 1)}
                 disabled={page === 1}
-                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm"
+                className="p-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200 shadow-sm"
                 aria-label="Previous page"
               >
                 <ChevronLeftIcon className="w-5 h-5" />
@@ -814,10 +1072,10 @@ export default function SystemDesign() {
                     <button
                       key={p}
                       onClick={() => handlePageChange(p)}
-                      className={`px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium transition-all duration-200 shadow-sm ${
+                      className={`px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-700 text-sm font-medium transition-all duration-200 shadow-sm ${
                         p === page
                           ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          : "bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
                       }`}
                     >
                       {p}
@@ -827,7 +1085,7 @@ export default function SystemDesign() {
               <button
                 onClick={() => handlePageChange(page + 1)}
                 disabled={page === totalPages}
-                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm"
+                className="p-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200 shadow-sm"
                 aria-label="Next page"
               >
                 <ChevronRightIcon className="w-5 h-5" />
@@ -844,7 +1102,7 @@ export default function SystemDesign() {
             transition={{ delay: 0.3, duration: 0.5 }}
             className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden"
           >
-            <div className="sticky top-0 bg-white dark:bg-slate-800 z-10 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="sticky top-0 bg-white dark:bg-slate-800 z-10 px-6 py-4 border-b border-gray-200 dark:border-slate-700">
               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
                 Popular Topics
               </h3>
@@ -868,7 +1126,7 @@ export default function SystemDesign() {
                             ({tagCounts[t] || 0})
                           </span>
                         </Link>
-                        </li>
+                      </li>
                     )
                 )}
               </ul>

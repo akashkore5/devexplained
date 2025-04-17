@@ -14,6 +14,8 @@ import Layout from "../../components/Layout";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import DOMPurify from "dompurify";
+import { useSession } from "next-auth/react";
+import { CheckCircleIcon, HeartIcon } from "@heroicons/react/24/solid";
 
 // Configure DOMPurify for server-side rendering
 let purify;
@@ -42,12 +44,22 @@ class ErrorBoundary extends Component {
 }
 
 export async function getStaticPaths() {
-  const files = fs.readdirSync("posts");
-  const paths = files.map((filename) => ({
-    params: {
-      id: filename.replace(".md", ""),
-    },
-  }));
+  const postsDir = path.join(process.cwd(), "posts");
+  let files;
+  try {
+    files = fs.readdirSync(postsDir);
+  } catch (error) {
+    console.error("Error reading posts directory:", error);
+    files = [];
+  }
+
+  const paths = files
+    .filter((filename) => filename.endsWith(".md"))
+    .map((filename) => ({
+      params: {
+        id: filename.replace(".md", ""),
+      },
+    }));
 
   return {
     paths,
@@ -56,39 +68,50 @@ export async function getStaticPaths() {
 }
 
 export async function getStaticProps({ params }) {
-  const filePath = path.join("posts", `${params.id}.md`);
-  const fileContent = fs.readFileSync(filePath, "utf-8");
-  const { data, content } = matter(fileContent);
+  try {
+    const filePath = path.join("posts", `${params.id}.md`);
+    if (!fs.existsSync(filePath)) {
+      return { notFound: true };
+    }
+    const fileContent = fs.readFileSync(filePath, "utf-8");
+    const { data, content } = matter(fileContent);
 
-  const langs = ["java", "cpp", "python"];
-  const codeBlocks = {};
+    const langs = ["java", "cpp", "python"];
+    const codeBlocks = {};
 
-  langs.forEach((lang) => {
-    const regex = new RegExp(`\`\`\`${lang}\n([\\s\\S]*?)\n\`\`\``, "i");
-    const match = content.match(regex);
-    codeBlocks[lang] = match ? match[1].trim() : "";
-  });
+    langs.forEach((lang) => {
+      const regex = new RegExp(`\`\`\`${lang}\n([\\s\\S]*?)\n\`\`\``, "i");
+      const match = content.match(regex);
+      codeBlocks[lang] = match ? match[1].trim() : "";
+    });
 
-  // Extract content before the first code block
-  const explanationContent = content.split(/```[a-z]+/i)[0].trim();
-  const processedContent = await remark().use(html).process(explanationContent);
-  const contentHtml = processedContent.toString();
+    const explanationContent = content.split(/```[a-z]+/i)[0].trim();
+    const processedContent = await remark().use(html).process(explanationContent);
+    const contentHtml = processedContent.toString();
 
-  return {
-    props: {
-      frontMatter: data,
-      contentHtml,
-      codeBlocks,
-    },
-  };
+    return {
+      props: {
+        frontMatter: data,
+        contentHtml,
+        codeBlocks,
+      },
+    };
+  } catch (error) {
+    console.error("Error in getStaticProps:", error);
+    return { notFound: true };
+  }
 }
 
 // Memoize the component
 const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBlocks }) {
   const [activeTab, setActiveTab] = useState("java");
   const [copyIcon, setCopyIcon] = useState("copy");
+  const [isSolving, setIsSolving] = useState(false);
+  const [isTagging, setIsTagging] = useState(false);
   const codeRef = useRef(null);
   const router = useRouter();
+  const { data: session, status } = useSession();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // Calculate next and previous IDs
   const currentId = parseInt(frontMatter.id, 10);
@@ -115,6 +138,38 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
     }
   }, [activeTab]);
 
+  // Mark problem as viewed (only for logged-in users)
+  useEffect(() => {
+    if (status !== "authenticated") return;
+
+    const checkAndMarkViewed = async () => {
+      try {
+        // Check if already viewed
+        const response = await fetch("/api/user/progress/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "leetcode", action: "viewed", id: currentId }),
+        });
+        const data = await response.json();
+        if (data.isPresent) return; // Skip if already viewed
+
+        // Mark as viewed
+        const markResponse = await fetch("/api/user/progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "leetcode", action: "viewed", id: currentId }),
+        });
+        if (!markResponse.ok) {
+          console.error("Failed to mark viewed:", markResponse.statusText);
+        }
+      } catch (error) {
+        console.error("Error checking/marking viewed:", error);
+      }
+    };
+
+    checkAndMarkViewed();
+  }, [currentId, status]);
+
   const copyToClipboard = useCallback(async (code) => {
     try {
       await navigator.clipboard.writeText(code);
@@ -129,6 +184,58 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
       console.error("Failed to copy code:", err);
     }
   }, []);
+
+  const handleMarkSolved = useCallback(async () => {
+    if (status !== "authenticated") {
+      setIsLoginModalOpen(true);
+      return;
+    }
+
+    setIsSolving(true);
+    try {
+      const response = await fetch("/api/user/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "leetcode", action: "solved", id: currentId }),
+      });
+      if (response.ok) {
+        toast.success("Problem marked as solved!");
+      } else {
+        toast.error("Failed to mark as solved.");
+      }
+    } catch (error) {
+      console.error("Error marking solved:", error);
+      toast.error("An error occurred.");
+    } finally {
+      setIsSolving(false);
+    }
+  }, [currentId, status]);
+
+  const handleLikeTag = useCallback(async () => {
+    if (status !== "authenticated") {
+      setIsLoginModalOpen(true);
+      return;
+    }
+
+    setIsTagging(true);
+    try {
+      const response = await fetch("/api/user/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "leetcode", action: "tagged", id: currentId }),
+      });
+      if (response.ok) {
+        toast.success("Problem tagged!");
+      } else {
+        toast.error("Failed to tag problem.");
+      }
+    } catch (error) {
+      console.error("Error tagging problem:", error);
+      toast.error("An error occurred.");
+    } finally {
+      setIsTagging(false);
+    }
+  }, [currentId, status]);
 
   // Memoize difficulty styling
   const difficultyStyle = useMemo(() => {
@@ -166,25 +273,25 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
       name: "LeetcodeSolve",
       logo: {
         "@type": "ImageObject",
-        url: "https://devexplained.vercel.app/logo.png",
+        url: "https://leetcodesolve.vercel.app/logo.png",
       },
     },
     datePublished: frontMatter.date || new Date().toISOString(),
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": `https://devexplained.vercel.app/leetcode/${frontMatter.id}`,
+      "@id": `https://leetcodesolve.vercel.app/leetcode/${frontMatter.id}`,
     },
-    image: "https://devexplained.vercel.app/og-image.jpg",
+    image: "https://leetcodesolve.vercel.app/og-image.jpg",
   };
 
   return (
-    <Layout>
+    <Layout
+      title={`${frontMatter.id}. ${frontMatter.title || "Leetcode Solution"} - LeetcodeSolve`}
+      description={`Master the ${frontMatter.title || "Leetcode problem"} with detailed solutions in Java, C++, and Python.`}
+      isLoginModalOpen={isLoginModalOpen}
+      setIsLoginModalOpen={setIsLoginModalOpen}
+    >
       <Head>
-        <title>{`${frontMatter.id}. ${frontMatter.title || "Leetcode Solution"} - LeetcodeSolve`}</title>
-        <meta
-          name="description"
-          content={`Master the ${frontMatter.title || "Leetcode problem"} with detailed solutions in Java, C++, and Python. Includes explanations, complexity analysis, and interview tips.`}
-        />
         <meta
           name="keywords"
           content={`Leetcode, ${frontMatter.title}, ${frontMatter.difficulty || "programming"}, Java, C++, Python, algorithms, data structures, coding interview, Leetcode solution`}
@@ -201,8 +308,8 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
           content={`Detailed solution for Leetcode problem ${frontMatter.title || "Untitled Problem"} with code in Java, C++, and Python, plus expert explanations.`}
         />
         <meta property="og:type" content="article" />
-        <meta property="og:url" content={`https://devexplained.vercel.app/leetcode/${frontMatter.id}`} />
-        <meta property="og:image" content="https://devexplained.vercel.app/og-image.jpg" />
+        <meta property="og:url" content={`https://leetcodesolve.vercel.app/leetcode/${frontMatter.id}`} />
+        <meta property="og:image" content="https://leetcodesolve.vercel.app/og-image.jpg" />
         <meta property="og:image:alt" content={`Leetcode ${frontMatter.title} solution preview`} />
         <meta name="twitter:card" content="summary_large_image" />
         <meta
@@ -213,177 +320,216 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
           name="twitter:description"
           content={`Learn how to solve Leetcode's ${frontMatter.title || "problem"} with our expert solutions in Java, C++, and Python.`}
         />
-        <meta name="twitter:image" content="https://devexplained.vercel.app/twitter-image.jpg" />
+        <meta name="twitter:image" content="https://leetcodesolve.vercel.app/twitter-image.jpg" />
         <meta name="twitter:image:alt" content={`Leetcode ${frontMatter.title} solution preview`} />
-        <link rel="canonical" href={`https://devexplained.vercel.app/leetcode/${frontMatter.id}`} />
+        <link rel="canonical" href={`https://leetcodesolve.vercel.app/leetcode/${frontMatter.id}`} />
         <link rel="icon" href="/favicon.ico" type="image/x-icon" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="theme-color" content="#4f46e5" />
         <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
-        <meta name="google-site-verification" content="your-google-verification-code" />
-        <meta name="bing-site-verification" content="your-bing-verification-code" />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Head>
       <Toaster />
-      <article className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        {/* Problem Header */}
-        <motion.header
-          variants={sectionVariants}
-          initial="hidden"
-          animate="visible"
-          className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 sm:p-8 mb-6"
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <motion.article
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
         >
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">
-            {frontMatter.id}. {frontMatter.title || "Untitled Problem"}
-          </h1>
-          <div className="flex items-center gap-4 flex-wrap">
-            <button
-              onClick={() => router.push(`/leetcode?difficulty=${frontMatter.difficulty}`)}
-              className={`px-3 py-1 rounded-full text-sm font-medium ${difficultyStyle} cursor-pointer`}
-              aria-label={`Filter by ${frontMatter.difficulty} difficulty`}
-            >
-              {frontMatter.difficulty || "Unknown"}
-            </button>
-            {frontMatter.tags?.map((tag) => (
-              <Link
-                key={tag}
-                href={`/leetcode/tags/${tag}`}
-                className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded-full text-sm hover:bg-gray-200 dark:hover:bg-slate-600 transition"
-                prefetch={false}
+          {/* Problem Header */}
+          <motion.header
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 sm:p-8 mb-8"
+          >
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+              {frontMatter.id}. {frontMatter.title || "Untitled Problem"}
+            </h1>
+            <div className="flex flex-wrap items-center gap-4">
+              <button
+                onClick={() => router.push(`/leetcode?difficulty=${frontMatter.difficulty}`)}
+                className={`px-4 py-2 rounded-full text-sm font-semibold ${difficultyStyle} cursor-pointer transition-colors duration-200`}
+                aria-label={`Filter by ${frontMatter.difficulty} difficulty`}
               >
-                {tag}
-              </Link>
-            ))}
-          </div>
-        </motion.header>
-
-        {/* Problem Explanation */}
-        <motion.section
-          variants={sectionVariants}
-          initial="hidden"
-          animate="visible"
-          transition={{ delay: 0.2 }}
-          className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 sm:p-8 mb-6"
-        >
-          <div
-            className="prose prose-gray dark:prose-invert max-w-none text-gray-700 dark:text-gray-200"
-            dangerouslySetInnerHTML={{ __html: sanitizedContentHtml || "<p>No explanation available.</p>" }}
-            aria-label="Problem explanation"
-          />
-          <div className="mt-4">
-            <a
-              href={`https://leetcode.com/problems/${frontMatter.title.replace(/\s+/g, '-').toLowerCase()}`}
-              rel="noopener noreferrer"
-              className="inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
-            >
-              View Leetcode Problem
-            </a>
-          </div>
-        </motion.section>
-
-        {/* Solutions */}
-        <motion.section
-          variants={sectionVariants}
-          initial="hidden"
-          animate="visible"
-          transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-slate-800 rounded-xl shadow-md"
-        >
-          <nav className="border-b border-gray-200 dark:border-slate-700">
-            <div className="flex" role="tablist" aria-label="Programming languages">
-              {["java", "cpp", "python"].map((lang) => (
-                <button
-                  key={lang}
-                  role="tab"
-                  aria-selected={activeTab === lang}
-                  aria-controls={`panel-${lang}`}
-                  id={`tab-${lang}`}
-                  onClick={() => setActiveTab(lang)}
-                  className={`px-4 sm:px-6 py-3 font-medium text-sm sm:text-base focus:outline-none transition-colors ${
-                    activeTab === lang
-                      ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-slate-700"
-                      : "text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-slate-700"
-                  }`}
+                {frontMatter.difficulty || "Unknown"}
+              </button>
+              {frontMatter.tags?.map((tag) => (
+                <Link
+                  key={tag}
+                  href={`/leetcode/tags/${tag}`}
+                  className="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded-full text-sm font-medium hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors duration-200"
+                  prefetch={false}
                 >
-                  {lang.toUpperCase()}
-                </button>
+                  {tag}
+                </Link>
               ))}
+              <motion.button
+                onClick={handleMarkSolved}
+                disabled={isSolving}
+                className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-800 dark:to-indigo-900 text-white rounded-lg shadow-md hover:scale-105 disabled:opacity-50 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                aria-label="Mark as solved"
+              >
+                <CheckCircleIcon className="w-5 h-5 mr-2" />
+                {isSolving ? "Marking..." : "Mark as Solved"}
+              </motion.button>
+              <motion.button
+                onClick={handleLikeTag}
+                disabled={isTagging}
+                className="flex items-center px-4 py-2 bg-gradient-to-r from-pink-600 to-pink-700 dark:from-pink-800 dark:to-pink-900 text-white rounded-lg shadow-md hover:scale-105 disabled:opacity-50 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                aria-label="Like or tag problem"
+              >
+                <HeartIcon className="w-5 h-5 mr-2" />
+                {isTagging ? "Tagging..." : "Like/Tag"}
+              </motion.button>
             </div>
-          </nav>
+          </motion.header>
 
-          <div className="p-0 sm:p-2">
-            <ErrorBoundary>
-              {codeBlocks[activeTab] ? (
-                <div className="relative group">
+          {/* Problem Explanation */}
+          <motion.section
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.2 }}
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 sm:p-8 mb-8"
+          >
+            <div
+              className="prose prose-gray dark:prose-invert max-w-none text-gray-700 dark:text-gray-200"
+              dangerouslySetInnerHTML={{ __html: sanitizedContentHtml || "<p>No explanation available.</p>" }}
+              aria-label="Problem explanation"
+            />
+            <div className="mt-6">
+              <a
+                href={`https://leetcode.com/problems/${frontMatter.title.replace(/\s+/g, '-').toLowerCase()}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-800 dark:to-indigo-900 text-white rounded-lg shadow-md hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                View Leetcode Problem
+              </a>
+            </div>
+          </motion.section>
+
+          {/* Solutions */}
+          <motion.section
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.4 }}
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-lg"
+          >
+            <nav className="border-b border-gray-200 dark:border-slate-700">
+              <div className="flex" role="tablist" aria-label="Programming languages">
+                {["java", "cpp", "python"].map((lang) => (
                   <button
-                    onClick={() => copyToClipboard(codeBlocks[activeTab])}
-                    className="absolute right-3 top-3 p-2 rounded-md bg-gray-700/50 text-gray-400 hover:text-white transition-colors opacity-0 group-hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    title="Copy code"
-                    aria-label="Copy code to clipboard"
+                    key={lang}
+                    role="tab"
+                    aria-selected={activeTab === lang}
+                    aria-controls={`panel-${lang}`}
+                    id={`tab-${lang}`}
+                    onClick={() => setActiveTab(lang)}
+                    className={`px-4 sm:px-6 py-3 font-medium text-sm sm:text-base focus:outline-none transition-colors ${
+                      activeTab === lang
+                        ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-slate-700"
+                        : "text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-slate-700"
+                    }`}
                   >
-                    {copyIcon === "copy" ? (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                        />
-                      </svg>
-                    ) : (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5 text-green-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    )}
+                    {lang.toUpperCase()}
                   </button>
-                  <div className="bg-gray-900 rounded-lg overflow-hidden">
-                    <pre>
-                      <code ref={codeRef} className={`language-${activeTab}`}>
-                        {codeBlocks[activeTab]}
-                      </code>
-                    </pre>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-gray-500 dark:text-gray-400">
-                    Solution not available in {activeTab.toUpperCase()}
-                  </p>
-                </div>
-              )}
-            </ErrorBoundary>
-          </div>
-        </motion.section>
+                ))}
+              </div>
+            </nav>
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between mt-8">
-          {prevId !== null && (
-            <Link href={`/leetcode/${prevId}`} className="px-4 py-2 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-slate-600 transition">
-              Previous Question
+            <div className="p-0 sm:p-2">
+              <ErrorBoundary>
+                {codeBlocks[activeTab] ? (
+                  <div className="relative group">
+                    <button
+                      onClick={() => copyToClipboard(codeBlocks[activeTab])}
+                      className="absolute right-3 top-3 p-2 rounded-md bg-gray-700/50 text-gray-400 hover:text-white transition-colors opacity-0 group-hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      title="Copy code"
+                      aria-label="Copy code to clipboard"
+                    >
+                      {copyIcon === "copy" ? (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5 text-green-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      )}
+                    </button>
+                    <div className="bg-gray-900 rounded-lg overflow-hidden">
+                      <pre>
+                        <code ref={codeRef} className={`language-${activeTab}`}>
+                          {codeBlocks[activeTab]}
+                        </code>
+                      </pre>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Solution not available in {activeTab.toUpperCase()}
+                    </p>
+                  </div>
+                )}
+              </ErrorBoundary>
+            </div>
+          </motion.section>
+
+          {/* Navigation Buttons */}
+          <motion.div
+            className="flex justify-between mt-8"
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.6 }}
+          >
+            {prevId !== null && (
+              <Link
+                href={`/leetcode/${prevId}`}
+                className="inline-flex items-center px-4 py-2 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg shadow-md hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors duration-200"
+              >
+                Previous Question
+              </Link>
+            )}
+            <Link
+              href={`/leetcode/${nextId}`}
+              className="inline-flex items-center px-4 py-2 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg shadow-md hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors duration-200"
+            >
+              Next Question
             </Link>
-          )}
-          <Link href={`/leetcode/${nextId}`} className="px-4 py-2 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-slate-600 transition">
-            Next Question
-          </Link>
-        </div>
-      </article>
+          </motion.div>
+        </motion.article>
+      </main>
     </Layout>
   );
 });

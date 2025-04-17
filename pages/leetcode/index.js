@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/router";
 import problems from "../../data/problems.json";
 import Link from "next/link";
@@ -15,10 +15,15 @@ import {
   DocumentTextIcon,
   TableCellsIcon,
   ListBulletIcon,
+  CheckCircleIcon,
+  HeartIcon,
 } from "@heroicons/react/24/solid";
+import { useSession } from "next-auth/react";
+import { toast, Toaster } from "react-hot-toast";
 
-export default function Leetcode() {
+export default function Leetcode({ initialViewMode = "table" }) {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState("");
   const [tag, setTag] = useState("");
@@ -29,12 +34,48 @@ export default function Leetcode() {
   const [isDifficultyOpen, setIsDifficultyOpen] = useState(false);
   const [isTagOpen, setIsTagOpen] = useState(false);
   const [isPerPageOpen, setIsPerPageOpen] = useState(false);
-  const [viewMode, setViewMode] = useState("list"); // Default to list for SSR
-  const [userToggledView, setUserToggledView] = useState(false); // Track user toggle
+  const [viewMode, setViewMode] = useState(initialViewMode);
+  const [userToggledView, setUserToggledView] = useState(false);
+  const [solvedProblems, setSolvedProblems] = useState([]);
+  const [taggedProblems, setTaggedProblems] = useState([]);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const difficultyRef = useRef(null);
   const tagRef = useRef(null);
   const perPageRef = useRef(null);
+
+  // Fetch user's progress
+  useEffect(() => {
+    if (status !== "authenticated") return;
+
+    const fetchProgress = async () => {
+      try {
+        const response = await fetch("/api/user/progress/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "leetcode", action: "all" }),
+        });
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Progress API response:", data);
+        if (!data || typeof data !== "object") {
+          throw new Error("Invalid API response");
+        }
+        // Ensure IDs are numbers
+        const solved = (data.solved || []).map(Number);
+        const tagged = (data.tagged || []).map(Number);
+        setSolvedProblems(solved);
+        setTaggedProblems(tagged);
+      } catch (error) {
+        console.error("Error fetching progress:", error);
+        toast.error("Failed to load progress");
+      }
+    };
+
+    fetchProgress();
+  }, [status]);
 
   // Handle tag query parameter
   useEffect(() => {
@@ -64,20 +105,19 @@ export default function Leetcode() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Set view mode based on screen size with debouncing
+  // Handle resize for view mode
   useEffect(() => {
     let timeout;
     const handleResize = () => {
-      // Skip if user has manually toggled the view
       if (userToggledView) return;
 
       clearTimeout(timeout);
       timeout = setTimeout(() => {
         setViewMode(window.innerWidth >= 768 ? "table" : "list");
-      }, 200); // 200ms debounce
+      }, 200);
     };
 
-    handleResize(); // Set initial view
+    handleResize();
     window.addEventListener("resize", handleResize);
     return () => {
       clearTimeout(timeout);
@@ -132,7 +172,7 @@ export default function Leetcode() {
 
   const sortedProblems = useMemo(() => {
     if (!sortColumn || !sortDirection) {
-      return [...filtered]; // Original order (no sort)
+      return [...filtered];
     }
     return [...filtered].sort((a, b) => {
       if (sortColumn === "title") {
@@ -196,13 +236,13 @@ export default function Leetcode() {
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
       case "Easy":
-        return "bg-green-100 dark:bg-green-100 text-green-800 border-green-200 hover:bg-green-400 dark:hover:bg-green-400";
+        return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 hover:bg-green-200 dark:hover:bg-green-800";
       case "Medium":
-        return "bg-yellow-100 dark:bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-400 dark:hover:bg-yellow-400";
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 hover:bg-yellow-200 dark:hover:bg-yellow-800";
       case "Hard":
-        return "bg-red-100 dark:bg-red-100 text-red-800 border-red-200 hover:bg-red-400 dark:hover:bg-red-400";
+        return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-200 hover:bg-red-200 dark:hover:bg-red-800";
       default:
-        return "bg-gray-100 dark:bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-200";
     }
   };
 
@@ -212,10 +252,83 @@ export default function Leetcode() {
 
   const toggleViewMode = () => {
     setViewMode((prev) => (prev === "list" ? "table" : "list"));
-    setUserToggledView(true); // Mark that user has toggled
+    setUserToggledView(true);
   };
 
-  // Animation variants for list view
+  const handleMarkSolved = useCallback(
+    async (id, isSolved) => {
+      if (status !== "authenticated") {
+        setIsLoginModalOpen(true);
+        return;
+      }
+
+      const numericId = Number(id); // Ensure ID is a number
+      try {
+        const response = await fetch("/api/user/progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "leetcode",
+            action: "solved",
+            id: numericId,
+            remove: isSolved,
+          }),
+        });
+        if (response.ok) {
+          setSolvedProblems((prev) =>
+            isSolved
+              ? prev.filter((pid) => pid !== numericId)
+              : [...prev, numericId]
+          );
+          toast.success(isSolved ? "Problem unmarked as solved" : "Problem marked as solved");
+        } else {
+          toast.error("Failed to update solved status");
+        }
+      } catch (error) {
+        console.error("Error updating solved status:", error);
+        toast.error("An error occurred");
+      }
+    },
+    [status]
+  );
+
+  const handleTagProblem = useCallback(
+    async (id, isTagged) => {
+      if (status !== "authenticated") {
+        setIsLoginModalOpen(true);
+        return;
+      }
+
+      const numericId = Number(id); // Ensure ID is a number
+      try {
+        const response = await fetch("/api/user/progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "leetcode",
+            action: "tagged",
+            id: numericId,
+            remove: isTagged,
+          }),
+        });
+        if (response.ok) {
+          setTaggedProblems((prev) =>
+            isTagged
+              ? prev.filter((pid) => pid !== numericId)
+              : [...prev, numericId]
+          );
+          toast.success(isTagged ? "Problem untagged" : "Problem tagged");
+        } else {
+          toast.error("Failed to update tag status");
+        }
+      } catch (error) {
+        console.error("Error updating tag status:", error);
+        toast.error("An error occurred");
+      }
+    },
+    [status]
+  );
+
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
@@ -223,19 +336,24 @@ export default function Leetcode() {
 
   const difficultyVariants = {
     hidden: { scale: 0, opacity: 0 },
-    visible: (difficulty) => ({
+    visible: {
       scale: 1,
       opacity: 1,
-      transition: {
-        duration: 0.5,
-        type: "spring",
-        stiffness: 100,
-      },
-    }),
+      transition: { duration: 0.5, type: "spring", stiffness: 100 },
+    },
+  };
+
+  const iconVariants = {
+    initial: { scale: 1 },
+    hover: { scale: 1.2 },
+    tap: { scale: 0.9 },
   };
 
   return (
-    <Layout>
+    <Layout
+      isLoginModalOpen={isLoginModalOpen}
+      setIsLoginModalOpen={setIsLoginModalOpen}
+    >
       <Head>
         <title>
           {`Leetcode Solutions - ${search || "All"} Problems | LeetcodeSolve`}
@@ -262,11 +380,11 @@ export default function Leetcode() {
         <meta property="og:type" content="website" />
         <meta
           property="og:url"
-          content={`https://devexplained.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`}
+          content={`https://leetcodesolve.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`}
         />
         <meta
           property="og:image"
-          content="https://devexplained.vercel.app/og-image.jpg"
+          content="https://leetcodesolve.vercel.app/og-image.jpg"
         />
         <meta name="twitter:card" content="summary_large_image" />
         <meta
@@ -279,11 +397,11 @@ export default function Leetcode() {
         />
         <meta
           name="twitter:image"
-          content="https://devexplained.vercel.app/twitter-image.jpg"
+          content="https://leetcodesolve.vercel.app/twitter-image.jpg"
         />
         <link
           rel="canonical"
-          href={`https://devexplained.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`}
+          href={`https://leetcodesolve.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`}
         />
         <script
           type="application/ld+json"
@@ -292,13 +410,13 @@ export default function Leetcode() {
               JSON.stringify({
                 "@context": "https://schema.org",
                 "@type": "ItemList",
-                "url": `https://devexplained.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`,
+                "url": `https://leetcodesolve.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`,
                 "name": `Leetcode ${search || "all"} problems`,
                 "description": `Find solutions to ${search || "all"} Leetcode problems with expert tutorials.`,
                 "itemListElement": filtered.map((p, index) => ({
                   "@type": "ListItem",
                   "position": index + 1,
-                  "url": `https://devexplained.vercel.app/leetcode/${p.id}`,
+                  "url": `https://leetcodesolve.vercel.app/leetcode/${p.id}`,
                   "name": `${p.id}. ${p.title}`,
                   "description": `Difficulty: ${p.difficulty}, Tags: ${p.tags?.join(", ") || ""}`,
                 })),
@@ -307,14 +425,14 @@ export default function Leetcode() {
           }}
         />
       </Head>
-
+      <Toaster />
       <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Filters Section */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-8"
+          className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 mb-8"
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 sm:flex-nowrap">
             <div className="relative flex-grow min-w-[150px] mb-3 sm:mb-0">
@@ -326,7 +444,7 @@ export default function Leetcode() {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300 shadow-sm hover:shadow-md pr-10 text-sm"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300 shadow-sm hover:shadow-md pr-10 text-sm"
                 aria-label="Search problems"
               />
               {search && (
@@ -342,7 +460,7 @@ export default function Leetcode() {
             <div className="relative w-full sm:w-36 mb-3 sm:mb-0" ref={difficultyRef}>
               <button
                 onClick={() => setIsDifficultyOpen(!isDifficultyOpen)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-left flex justify-between items-center transition-all duration-300 shadow-sm hover:shadow-md text-sm truncate"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-gray-100 text-left flex justify-between items-center transition-all duration-300 shadow-sm hover:shadow-md text-sm truncate"
                 aria-label="Select difficulty"
               >
                 <span className="truncate">{truncateText(difficulty || "Difficulty")}</span>
@@ -380,7 +498,7 @@ export default function Leetcode() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute z-10 mt-2 w-full rounded-lg bg-white dark:bg-gray-800 shadow-xl border border-gray-300 dark:border-gray-600 overflow-hidden"
+                    className="absolute z-10 mt-2 w-full rounded-lg bg-white dark:bg-slate-800 shadow-xl border border-gray-300 dark:border-gray-600 overflow-hidden"
                   >
                     {["All", "Easy", "Medium", "Hard"].map((option) => (
                       <button
@@ -397,7 +515,7 @@ export default function Leetcode() {
                             updateQuery(newQuery);
                           }
                         }}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+                        className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200"
                       >
                         {option}
                       </button>
@@ -409,7 +527,7 @@ export default function Leetcode() {
             <div className="relative w-full sm:w-36 mb-3 sm:mb-0" ref={tagRef}>
               <button
                 onClick={() => setIsTagOpen(!isTagOpen)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-left flex justify-between items-center transition-all duration-300 shadow-sm hover:shadow-md text-sm truncate"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-gray-100 text-left flex justify-between items-center transition-all duration-300 shadow-sm hover:shadow-md text-sm truncate"
                 aria-label="Select topic"
               >
                 <span className="truncate">{truncateText(tag || "Topics")}</span>
@@ -447,7 +565,7 @@ export default function Leetcode() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute z-10 mt-2 w-full rounded-lg bg-white dark:bg-gray-800 shadow-xl border border-gray-300 dark:border-gray-600 overflow-y-auto max-h-60"
+                    className="absolute z-10 mt-2 w-full rounded-lg bg-white dark:bg-slate-800 shadow-xl border border-gray-300 dark:border-gray-600 overflow-y-auto max-h-60"
                   >
                     {allTags.map((t) => (
                       <button
@@ -464,7 +582,7 @@ export default function Leetcode() {
                             updateQuery(newQuery);
                           }
                         }}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+                        className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200"
                       >
                         {t}
                       </button>
@@ -477,12 +595,12 @@ export default function Leetcode() {
               <div className="relative flex-grow sm:w-36" ref={perPageRef}>
                 <button
                   onClick={() => setIsPerPageOpen(!isPerPageOpen)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-left flex justify-between items-center transition-all duration-300 shadow-sm hover:shadow-md text-sm truncate"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-gray-100 text-left flex justify-between items-center transition-all duration-300 shadow-sm hover:shadow-md text-sm truncate"
                   aria-label="Select problems per page"
                 >
                   <span className="truncate">{truncateText(`${perPage} / Page`)}</span>
                   <span className="flex-shrink-0 w-4 h-4">
-                    {perPage !== 10 ? (
+                    {perPage !== 15 ? (
                       <XMarkIcon
                         className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                         onClick={(e) => {
@@ -515,7 +633,7 @@ export default function Leetcode() {
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: -10 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute z-10 mt-2 w-full rounded-lg bg-white dark:bg-gray-800 shadow-xl border border-gray-300 dark:border-gray-600 overflow-hidden"
+                      className="absolute z-10 mt-2 w-full rounded-lg bg-white dark:bg-slate-800 shadow-xl border border-gray-300 dark:border-gray-600 overflow-hidden"
                     >
                       {[15, 25, 50, 100].map((value) => (
                         <button
@@ -525,7 +643,7 @@ export default function Leetcode() {
                             setPage(1);
                             setIsPerPageOpen(false);
                           }}
-                          className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+                          className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200"
                         >
                           {value} / page
                         </button>
@@ -536,7 +654,7 @@ export default function Leetcode() {
               </div>
               <button
                 onClick={toggleViewMode}
-                className="p-2 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm hover:shadow-md w-10 h-10 flex items-center justify-center flex-shrink-0"
+                className="p-2 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200 shadow-sm hover:shadow-md w-10 h-10 flex items-center justify-center flex-shrink-0"
                 aria-label={`Switch to ${viewMode === "list" ? "table" : "list"} view`}
               >
                 {viewMode === "list" ? (
@@ -571,13 +689,37 @@ export default function Leetcode() {
                       onClick={() => router.push(`/leetcode/${id}`)}
                     >
                       <div className="flex flex-col">
-                        <Link
-                          href={`/leetcode/${id}`}
-                          className="text-xl font-semibold text-indigo-600 dark:text-indigo-400 hover:underline mb-2"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {id}. {title}
-                        </Link>
+                        <div className="flex items-center justify-between">
+                          <Link
+                            href={`/leetcode/${id}`}
+                            className="text-xl font-semibold text-indigo-600 dark:text-indigo-400 hover:underline mb-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {id}. {title}
+                          </Link>
+                          <motion.button
+                            variants={iconVariants}
+                            initial="initial"
+                            whileHover="hover"
+                            whileTap="tap"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkSolved(id, solvedProblems.includes(Number(id)));
+                            }}
+                            className={`rounded-full p-1 ${
+                              solvedProblems.includes(Number(id))
+                                ? "bg-green-500 text-white"
+                                : "bg-gray-200 text-gray-500"
+                            }`}
+                            aria-label={
+                              solvedProblems.includes(Number(id))
+                                ? "Unmark as solved"
+                                : "Mark as solved"
+                            }
+                          >
+                            <CheckCircleIcon className="w-6 h-6" />
+                          </motion.button>
+                        </div>
                         <div className="flex items-center mt-2">
                           <motion.div
                             initial="hidden"
@@ -622,6 +764,40 @@ export default function Leetcode() {
                             </Link>
                           ))}
                         </div>
+                        <div className="flex gap-3 mt-4">
+                          <motion.button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkSolved(id, solvedProblems.includes(Number(id)));
+                            }}
+                            className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-800 dark:to-indigo-900 text-white rounded-lg shadow-md hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            aria-label={
+                              solvedProblems.includes(Number(id))
+                                ? "Unmark as solved"
+                                : "Mark as solved"
+                            }
+                          >
+                            <CheckCircleIcon className="w-5 h-5 mr-2" />
+                            {solvedProblems.includes(Number(id)) ? "Unmark Solved" : "Mark as Solved"}
+                          </motion.button>
+                          <motion.button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTagProblem(id, taggedProblems.includes(Number(id)));
+                            }}
+                            className="flex items-center px-4 py-2 bg-gradient-to-r from-pink-600 to-pink-700 dark:from-pink-800 dark:to-pink-900 text-white rounded-lg shadow-md hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            aria-label={
+                              taggedProblems.includes(Number(id)) ? "Untag problem" : "Tag problem"
+                            }
+                          >
+                            <HeartIcon className="w-5 h-5 mr-2" />
+                            {taggedProblems.includes(Number(id)) ? "Untag" : "Tag"}
+                          </motion.button>
+                        </div>
                       </div>
                     </motion.li>
                   ))
@@ -632,44 +808,75 @@ export default function Leetcode() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden"
+                className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden"
               >
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-100 dark:bg-gray-700">
+                    <thead className="bg-gray-100 dark:bg-slate-700">
                       <tr>
-                        {["title", "difficulty", "topics", "article"].map((column) => (
-                          <th
-                            key={column}
-                            scope="col"
-                            className={`px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider ${
-                              column === "title" || column === "difficulty"
-                                ? "cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200"
-                                : ""
-                            }`}
-                            onClick={() =>
-                              (column === "title" || column === "difficulty") && handleSort(column)
-                            }
-                          >
-                            <div className="flex items-center gap-2">
-                              {column.charAt(0).toUpperCase() + column.slice(1)}
-                              {sortColumn === column && sortDirection && (
-                                sortDirection === "asc" ? (
-                                  <ChevronUpIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
-                                ) : (
-                                  <ChevronDownIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
-                                )
-                              )}
-                            </div>
-                          </th>
-                        ))}
+                        <th
+                          scope="col"
+                          className="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider w-12"
+                        >
+                          Status
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600 transition-all duration-200"
+                          onClick={() => handleSort("title")}
+                        >
+                          <div className="flex items-center gap-2">
+                            Title
+                            {sortColumn === "title" && sortDirection && (
+                              sortDirection === "asc" ? (
+                                <ChevronUpIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                              ) : (
+                                <ChevronDownIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                              )
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600 transition-all duration-200"
+                          onClick={() => handleSort("difficulty")}
+                        >
+                          <div className="flex items-center gap-2">
+                            Difficulty
+                            {sortColumn === "difficulty" && sortDirection && (
+                              sortDirection === "asc" ? (
+                                <ChevronUpIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                              ) : (
+                                <ChevronDownIcon className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                              )
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+                        >
+                          Topics
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider w-12"
+                        >
+                          Tag/Like
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider w-12"
+                        >
+                          Article
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                       {paginated.length === 0 ? (
                         <tr>
                           <td
-                            colSpan="4"
+                            colSpan="6"
                             className="px-4 py-8 text-center text-gray-500 dark:text-gray-400 text-lg"
                           >
                             No problems found. Try adjusting your filters.
@@ -682,8 +889,34 @@ export default function Leetcode() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3 }}
-                            className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
+                            className="hover:bg-gray-50 dark:hover:bg-slate-900 transition-all duration-200"
                           >
+                            <td className="px-4 py-4 w-12">
+                              <motion.button
+                                variants={iconVariants}
+                                initial="initial"
+                                whileHover="hover"
+                                whileTap="tap"
+                                onClick={() =>
+                                  handleMarkSolved(
+                                    problem.id,
+                                    solvedProblems.includes(Number(problem.id))
+                                  )
+                                }
+                                className={`rounded-full p-1 ${
+                                  solvedProblems.includes(Number(problem.id))
+                                    ? "bg-green-500 text-white"
+                                    : "bg-gray-200 text-gray-500"
+                                }`}
+                                aria-label={
+                                  solvedProblems.includes(Number(problem.id))
+                                    ? "Unmark as solved"
+                                    : "Mark as solved"
+                                }
+                              >
+                                <CheckCircleIcon className="w-6 h-6" />
+                              </motion.button>
+                            </td>
                             <td className="px-4 py-4 text-sm">
                               <Link
                                 href={`/leetcode/${problem.id}`}
@@ -698,7 +931,7 @@ export default function Leetcode() {
                                   href={`/leetcode?difficulty=${encodeURIComponent(
                                     problem.difficulty
                                   )}`}
-                                  className={`inline-block text-center px-1.5 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border transition-all duration-200 truncate max-w-[80px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${getDifficultyColor(
+                                  className={`inline-block text-center px-1.5 py-1 rounded-lg text-xs font-medium border transition-all duration-200 truncate max-w-[80px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${getDifficultyColor(
                                     problem.difficulty
                                   )}`}
                                   title={problem.difficulty}
@@ -708,13 +941,16 @@ export default function Leetcode() {
                                 </Link>
                               </div>
                             </td>
-                            <td className="px-4 py-4">
-                              <div className="flex flex-wrap gap-2 sm:gap-1">
+                            <td className="px-4 py-4 min-w-[150px] max-w-[250px]">
+                              <div
+                                className="flex flex-wrap gap-2 sm:gap-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600"
+                                aria-label="Problem tags"
+                              >
                                 {problem.tags?.map((t) => (
                                   <Link
                                     key={t}
                                     href={`/leetcode?tag=${encodeURIComponent(t)}`}
-                                    className={`inline-block text-center px-1 py-0.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 transition-all duration-200 truncate max-w-[100px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${
+                                    className={`inline-block text-center px-1 py-0.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600 border border-gray-200 dark:border-gray-600 transition-all duration-200 truncate max-w-[100px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${
                                       t.length > 15 ? "text-[10px]" : ""
                                     }`}
                                     onClick={() => setPage(1)}
@@ -726,7 +962,33 @@ export default function Leetcode() {
                                 ))}
                               </div>
                             </td>
-                            <td className="px-4 py-4">
+                            <td className="px-4 py-4 w-12">
+                              <motion.button
+                                variants={iconVariants}
+                                initial="initial"
+                                whileHover="hover"
+                                whileTap="tap"
+                                onClick={() =>
+                                  handleTagProblem(
+                                    problem.id,
+                                    taggedProblems.includes(Number(problem.id))
+                                  )
+                                }
+                                className={`p-1 ${
+                                  taggedProblems.includes(Number(problem.id))
+                                    ? "text-green-500"
+                                    : "text-gray-400"
+                                }`}
+                                aria-label={
+                                  taggedProblems.includes(Number(problem.id))
+                                    ? "Untag problem"
+                                    : "Tag problem"
+                                }
+                              >
+                                <HeartIcon className="w-6 h-6" />
+                              </motion.button>
+                            </td>
+                            <td className="px-4 py-4 w-12">
                               <Link
                                 href={`/leetcode/${problem.id}`}
                                 className="inline-flex justify-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-all duration-200 w-full"
@@ -805,7 +1067,7 @@ export default function Leetcode() {
               <button
                 onClick={() => handlePageChange(page - 1)}
                 disabled={page === 1}
-                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm"
+                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200 shadow-sm"
                 aria-label="Previous page"
               >
                 <ChevronLeftIcon className="w-5 h-5" />
@@ -820,7 +1082,7 @@ export default function Leetcode() {
                       className={`px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium transition-all duration-200 shadow-sm ${
                         p === page
                           ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
                       }`}
                     >
                       {p}
@@ -830,7 +1092,7 @@ export default function Leetcode() {
               <button
                 onClick={() => handlePageChange(page + 1)}
                 disabled={page === totalPages}
-                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm"
+                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200 shadow-sm"
                 aria-label="Next page"
               >
                 <ChevronRightIcon className="w-5 h-5" />
@@ -881,4 +1143,15 @@ export default function Leetcode() {
       </main>
     </Layout>
   );
+}
+
+export async function getServerSideProps(context) {
+  const { req } = context;
+  const userAgent = req.headers["user-agent"] || "";
+  const isMobile = /mobile/i.test(userAgent);
+  return {
+    props: {
+      initialViewMode: isMobile ? "list" : "table",
+    },
+  };
 }

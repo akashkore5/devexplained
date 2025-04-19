@@ -1,157 +1,200 @@
 **Design an Online Code Judge**
 
-### Introduction
-In this blog post, we will explore the design of a comprehensive online code judge system. The purpose of this system is to enable users to submit and test their programming skills by solving problems and challenges, allowing them to track their progress and compete with others. This system matters because it provides a platform for programmers to hone their coding abilities, learn from their mistakes, and engage in a fun and competitive environment.
+## Introduction
 
-### Problem Statement
-The online code judge system aims to solve the problem of providing a platform for programmers to test and evaluate their programming skills. The system must handle a large volume of user submissions, accurately execute and evaluate each submission, and provide timely feedback to users.
+In this document, we will explore the design of a system for an online code judge. The goal is to understand the requirements, challenges, and architectural decisions involved in building such a system.
 
-### High-Level Design (HLD)
+## Requirements
 
-#### Overview of System Architecture
+### Functional Requirements
 
-Our online code judge system consists of several microservices that work together seamlessly to provide the desired functionality. These microservices are:
+The core functionalities that the system must provide include:
 
-1. **Submission Service**: Responsible for handling user submissions, validating inputs, and storing submitted code.
-2. **Evaluation Service**: Executes the submitted code against a set of predefined test cases, evaluates its performance, and generates feedback.
-3. **User Profile Service**: Manages user profiles, including their submission history, ratings, and other relevant information.
+* Users can submit their code to be judged
+* The system can run the submitted code against a set of test cases
+* The system returns the results of the code execution, including any errors or warnings
+* Users can view their submission history and track their progress
 
-#### Microservices
+### Non-Functional Requirements
 
-| Microservice | Responsibility |
-| --- | --- |
-| Submission Service | Handles user submissions, validates inputs, and stores submitted code. |
-| Evaluation Service | Executes the submitted code against a set of predefined test cases, evaluates its performance, and generates feedback. |
-| User Profile Service | Manages user profiles, including their submission history, ratings, and other relevant information. |
+The system must also meet certain non-functional requirements, such as:
 
-#### API Gateway
+* Performance: the system should be able to handle a large volume of submissions and requests without significant delay
+* Scalability: the system should be able to scale horizontally to accommodate increased traffic
+* Reliability: the system should be designed to minimize downtime and ensure that user data is preserved in case of failures
 
-We will use AWS API Gateway as our API gateway, which provides robust features such as API keys, rate limiting, and security.
+## High-Level Architecture
 
-#### Load Balancing Strategy
+The high-level architecture of the system consists of the following components:
 
-To ensure high availability and scalability, we will implement a Round-Robin load balancing strategy using Amazon Elastic Load Balancer (ELB).
+* **Frontend**: a web-based interface for users to submit their code, view submission history, and track their progress
+* **Judge Service**: a service responsible for running the submitted code against a set of test cases and returning the results
+* **Database**: a relational database management system (RDBMS) to store user submissions, test cases, and results
 
-#### Caching Strategy
+The components interact as follows:
 
-We will use Redis as our caching layer to store frequently accessed data, such as user profiles and submission metadata. This will help reduce the load on our database and improve system performance.
+1. A user submits their code through the frontend.
+2. The judge service receives the submission and runs it against the test cases.
+3. The judge service returns the results of the code execution to the frontend.
+4. The frontend displays the results to the user.
 
-#### Rate Limiting Approach
+[ASCII Diagram: Judge Service Workflow]
 
-To prevent abuse and ensure fair usage, we will implement a token bucket rate limiting approach using AWS API Gateway's built-in features.
-
-#### Database Selection
-
-We will use PostgreSQL as our primary database for storing user profiles, submission data, and other relevant information. This is because PostgreSQL provides robust support for transactions, indexing, and query optimization, making it well-suited for handling high-traffic applications.
-
-Here is an ASCII diagram of the architecture:
 ```
-  +---------------+
-  |  User    |
-  +---------------+
-           |
-           |
-           v
-  +---------------+
-  | Submission  |
-  | Service      |
-  +---------------+
-           |
-           |
-           v
-  +---------------+
-  | Evaluation  |
-  | Service      |
-  +---------------+
-           |
-           |
-           v
-  +---------------+
-  | User Profile|
-  | Service     |
-  +---------------+
-           |
-           |
-           v
-  +---------------+
-  | Redis Cache|
-  +---------------+
-           |
-           |
-           v
-  +---------------+
-  | PostgreSQL |
-  +---------------+
+          +---------------+
+          |  Frontend   |
+          +---------------+
+                  |
+                  | Submit Code
+                  v
+          +---------------+
+          |  Judge Service  |
+          +---------------+
+                  |
+                  | Run Code against
+                  | Test Cases
+                  v
+          +---------------+
+          |  Database     |
+          +---------------+
 ```
 
-### Low-Level Design (LLD)
+## Database Schema
 
-#### Detailed Design of Key Microservices
+The database schema consists of the following tables:
 
-We will provide detailed designs for the Submission Service, Evaluation Service, and User Profile Service.
+* **submissions**: stores information about each submission, including user ID, code, and timestamp
+* **test_cases**: stores information about each test case, including input data, expected output, and timestamp
+* **results**: stores the results of each submission against each test case, including pass/fail status and any errors or warnings
 
-**Submission Service**
+The relationships between the tables are as follows:
 
-* API Endpoints:
-	+ `POST /submissions`: Handles user submissions, validates inputs, and stores submitted code.
-	+ `GET /submissions/:id`: Retrieves a specific submission by ID.
-* Java-style API Endpoints:
-```java
-@POST("/submissions")
-public void submitCode(String code) {
-    // Validate input and store code
-}
+* A submission can have multiple test cases (one-to-many).
+* A test case can be associated with multiple submissions (many-to-many).
+* A result is linked to a single submission and test case (many-to-one).
 
-@GetMapping("/submissions/{id}")
-public Submission getSubmission(@PathVariable long id) {
-    // Retrieve submission by ID
-}
+Indexing strategies include:
+
+* Indexing the submissions table by user ID for fast lookup
+* Indexing the test_cases table by timestamp for efficient query performance
+
+## API Design
+
+### Key Endpoints
+
+The system has the following key endpoints:
+
+* **POST /submit**: accepts a code submission and runs it against the test cases
+* **GET /results**: returns the results of the most recent submission for a given user
+* **GET /submission_history**: returns a list of past submissions for a given user
+
+### OpenAPI Specification
+
+Here is an example OpenAPI spec for the APIs:
+
 ```
-**Evaluation Service**
-
-* API Endpoints:
-	+ `POST /evaluations`: Executes the submitted code against a set of predefined test cases, evaluates its performance, and generates feedback.
-	+ `GET /evaluations/:id`: Retrieves a specific evaluation result by ID.
-* Java-style API Endpoints:
-```java
-@POST("/evaluations")
-public Evaluation evaluateCode(String code) {
-    // Execute code, evaluate performance, and generate feedback
-}
-
-@GetMapping("/evaluations/{id}")
-public Evaluation getEvaluation(@PathVariable long id) {
-    // Retrieve evaluation result by ID
-}
+openapi: 3.0.2
+info:
+  title: Online Code Judge API
+  description: API for submitting code and viewing submission history
+  version: 1.0.0
+paths:
+  /submit:
+    post:
+      summary: Submit a new code
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+      responses:
+        201:
+          description: Code submission successful
+        400:
+          description: Invalid request
+  /results:
+    get:
+      summary: Retrieve the most recent submission results
+      responses:
+        200:
+          description: Results retrieved successfully
+        404:
+          description: No submissions found for user
+  /submission_history:
+    get:
+      summary: Retrieve a list of past submissions
+      parameters:
+        - in: query
+          name: user_id
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Submission history retrieved successfully
+        404:
+          description: No submissions found for user
 ```
-**User Profile Service**
 
-* API Endpoints:
-	+ `GET /users/:id`: Retrieves a specific user profile by ID.
-	+ `PUT /users/:id`: Updates a specific user profile by ID.
-* Java-style API Endpoints:
-```java
-@GetMapping("/users/{id}")
-public UserProfile getUserProfile(@PathVariable long id) {
-    // Retrieve user profile by ID
-}
+## System Flow
 
-@PutMapping("/users/{id}")
-public void updateUserProfile(@PathVariable long id, UserProfile update) {
-    // Update user profile by ID
-}
+The system flow can be summarized as follows:
+
+1. A user submits their code through the frontend.
+2. The judge service receives the submission and runs it against the test cases.
+3. The judge service returns the results of the code execution to the frontend.
+4. The frontend displays the results to the user.
+
+[ASCII Diagram: System Flow]
+
+```
+          +---------------+
+          |  Frontend   |
+          +---------------+
+                  |
+                  | Submit Code
+                  v
+          +---------------+
+          |  Judge Service  |
+          +---------------+
+                  |
+                  | Run Code against
+                  | Test Cases
+                  v
+          +---------------+
+          |  Database     |
+          +---------------+
 ```
 
-### Scalability and Performance
+## Challenges and Solutions
 
-Our system is designed to scale horizontally using Amazon EC2 instances, allowing us to easily add or remove resources as needed. We will also implement performance optimizations such as indexing and query optimization in our database to ensure fast data retrieval.
+One potential challenge is handling a large volume of submissions and requests. To address this, we can implement load balancing and scalability measures, such as:
 
-### Reliability and Fault Tolerance
+* Horizontal scaling: add more instances of the judge service to handle increased traffic
+* Caching: store frequently accessed data in memory or cache layers to reduce database queries
+* Queue-based processing: use message queues to process submissions asynchronously and decouple the frontend from the judge service
 
-To handle failures, we will implement circuit breakers and retries using Netflix Hystrix. This will prevent cascading failures and ensure that our system remains available even in the presence of errors. We will also use Amazon RDS for PostgreSQL to provide automatic failover and high availability.
+## Scalability and Performance
 
-**Conclusion**
+To ensure the system can handle increased load and maintain performance, we can implement strategies such as:
 
-In this blog post, we have explored the design of an online code judge system, including its architecture, microservices, API gateways, load balancing strategy, caching strategy, rate limiting approach, database selection, and scalability and performance considerations. We believe that this system will provide a robust and scalable platform for programmers to test and evaluate their coding skills.
+* Load balancing: distribute traffic across multiple instances of the judge service
+* Caching: store frequently accessed data in memory or cache layers to reduce database queries
+* Queue-based processing: use message queues to process submissions asynchronously and decouple the frontend from the judge service
 
-**SEO Keywords**: Online code judge, system design, architecture, microservices, API gateway, load balancing, caching, rate limiting, database selection, scalability, performance
+## Security Considerations
+
+To protect the system and its data, we can implement measures such as:
+
+* Authentication: require users to log in with a username and password before submitting code
+* Authorization: restrict access to submission results based on user roles or permissions
+* Input validation: validate user input to prevent malicious code submissions
+* Encryption: encrypt sensitive data, such as code submissions, using secure encryption algorithms
+
+## Conclusion
+
+In this blog post, we explored the design of a professional online code judge system. We discussed the architecture, database schema, API design, and system flow in detail. We also highlighted potential challenges and solutions for scalability, performance, and security. This system can be used to evaluate student submissions or facilitate collaborative coding efforts.
+
+Note: This is just a sample blog post, please adjust according to your needs and expertise.

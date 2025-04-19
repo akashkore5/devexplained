@@ -1,108 +1,170 @@
-Here is the comprehensive blog post on designing a URL Shortener system:
+**Design a URL Shortener**
 
-**Designing a URL Shortener**
-=========================
+**Introduction**
+In this document, we will explore the design of a system for "Design a URL Shortener". The goal is to understand the requirements, challenges, and architectural decisions involved in building such a system.
 
-### Introduction
+**Requirements**
 
-In today's digital age, shortening URLs has become an essential feature for sharing links across various platforms. A well-designed URL shortener can simplify link-sharing, reduce character limits, and provide valuable insights into user behavior. In this blog post, we'll dive into the design of a scalable and reliable URL shortener system.
+### Functional Requirements
+The core functionalities the system must provide are:
 
-### Problem Statement
+* Creating a short URL from a given long URL
+* Retaining the original URL's metadata (e.g., title, description)
+* Handling redirects from the short URL to the original URL
+* Tracking analytics for each shortened URL (e.g., number of views, clicks)
 
-The problem we're trying to solve is to create a system that efficiently maps long URLs to shorter ones while ensuring scalability, reliability, and performance. The system should also provide features like analytics and tracking to help users understand how their shortened links are being used.
+Use cases or scenarios include:
 
-### High-Level Design (HLD)
+* A user wants to share a lengthy article link on social media, but it's too long. They can use our system to shorten the link and make it easier to share.
+* An e-commerce platform needs to create short URLs for product links to improve customer experience.
 
-Our URL shortener system will be built using microservices architecture, which allows for greater flexibility, scalability, and fault tolerance. Here's an overview of the key components:
+### Non-Functional Requirements
+The system must also consider non-functional requirements such as:
 
-#### Microservices
+* Performance: The system should be able to handle a large number of requests per second without significant latency or downtime.
+* Scalability: As the number of users and shortened URLs grows, the system should be able to scale horizontally or vertically to maintain performance.
+* Reliability: The system must ensure that redirects are reliable and minimize the risk of errors or timeouts.
 
-* **URL Shortening Service**: Responsible for creating and managing shortened URLs.
-* **Analytics Service**: Collects and processes data on link usage, such as click-through rates and geographic distribution.
-* **Database Service**: Stores URL metadata, analytics data, and other system information.
+**High-Level Architecture**
+The high-level architecture for our URL shortener system consists of:
 
-#### API Gateway
+1. **Frontend**: A web interface (e.g., React, Angular) for users to input long URLs and create shortened links.
+2. **Shortener Service**: A microservice responsible for generating unique short URLs and storing the original URL metadata.
+3. **Redirect Service**: Another microservice handling redirects from the short URL to the original URL.
+4. **Analytics Service**: A third microservice tracking analytics data (e.g., views, clicks) for each shortened URL.
 
-We'll use AWS API Gateway to handle incoming requests, route them to the appropriate microservices, and provide a RESTful interface for clients. This will enable features like request throttling, caching, and security.
+[Diagram 1: High-Level Architecture]
 
-#### Load Balancing
-
-To ensure high availability and scalability, we'll employ Round-Robin load balancing across multiple instances of each microservice. This approach distributes incoming traffic evenly among available instances, minimizing latency and improving overall system performance.
-
-#### Caching
-
-We'll leverage Redis as our caching layer to store frequently accessed data, such as shortened URL metadata and analytics results. This will reduce the number of requests hitting our database and improve response times for clients.
-
-#### Rate Limiting
-
-To prevent abuse and ensure fair usage, we'll implement a token bucket rate limiting approach. This involves issuing tokens at a fixed rate (e.g., 10 tokens per second) and allowing clients to consume them as they make requests. When the token limit is reached, clients will be temporarily blocked from making further requests.
-
-#### Database Selection
-
-We'll use PostgreSQL as our relational database management system for storing URL metadata and analytics data. For its scalability, flexibility, and ease of integration with AWS services.
-
-Here's an ASCII diagram illustrating the architecture:
 ```
           +---------------+
-          |  API Gateway  |
+          |  Frontend   |
           +---------------+
                   |
-                  | (Round-Robin)
+                  | (API)
                   v
-+-----------------------+       +-----------------------+
-|    URL Shortening    |       |     Analytics Service  |
-|   Service             |       |                         |
-+-----------------------+       +-----------------------+
+          +---------------+
+          |  Shortener    |
+          | Service        |
+          +---------------+
                   |
-                  | (Caching)
+                  | (Database)
                   v
-+---------------+       +---------------+
-|   Database    |       |  Redis Cache  |
-|  Service      |       |               |
-+---------------+       +---------------+
+          +---------------+
+          |  Redirect     |
+          | Service       |
+          +---------------+
+                  |
+                  | (Database)
+                  v
+          +---------------+
+          |  Analytics   |
+          | Service      |
+          +---------------+
 ```
-### Low-Level Design (LLD)
 
-Let's dive deeper into the design of our key microservices:
+**Database Schema**
+Our database schema consists of three tables:
 
-#### URL Shortening Service
+1. **urls**: Stores the original URL metadata, including the shortened URL.
+2. **shortened_urls**: Maps the short URLs to their corresponding original URLs.
+3. **analytics**: Tracks analytics data for each shortened URL.
 
-* API Endpoints:
-	+ `POST /shorten`: Creates a new shortened URL.
-	+ `GET /expand/{id}`: Expands a shortened URL to its original form.
-* System Flow:
-	1. Handle incoming `POST` request with shortened URL data.
-	2. Validate input and generate a unique short code.
-	3. Store shortened URL metadata in the database.
-	4. Return the shortened URL to the client.
+[Table 1: URLs]
 
-#### Analytics Service
+| Column Name | Data Type | Description |
+| --- | --- | --- |
+| id | int | Unique identifier for the original URL |
+| long_url | varchar | The original URL |
+| short_url | varchar | The generated shortened URL |
+| metadata | json | Original URL metadata (e.g., title, description) |
 
-* API Endpoints:
-	+ `GET /analytics/{shortCode}`: Retrieves analytics data for a given shortened URL.
-* System Flow:
-	1. Handle incoming `GET` request with the short code.
-	2. Retrieve relevant analytics data from the database.
-	3. Return the analytics data to the client.
+[Table 2: Shortened URLs]
 
-### Scalability and Performance
+| Column Name | Data Type | Description |
+| --- | --- | --- |
+| id | int | Unique identifier for the shortened URL |
+| short_url | varchar | The generated shortened URL |
+| original_id | int | Foreign key referencing the urls table |
 
-Our system is designed to scale horizontally by adding more instances of each microservice as demand increases. We'll also use sharding to partition large datasets across multiple machines, improving query performance and reducing the risk of single points of failure.
+[Table 3: Analytics]
 
-To further optimize performance, we'll:
+| Column Name | Data Type | Description |
+| --- | --- | --- |
+| id | int | Unique identifier for the analytics record |
+| short_url | varchar | The corresponding shortened URL |
+| views | int | Number of views for the shortened URL |
+| clicks | int | Number of clicks for the shortened URL |
 
-* Index frequently accessed columns in our database.
-* Optimize database queries for fast data retrieval.
-* Implement caching layers to reduce the load on our databases.
+**API Design**
 
-### Reliability and Fault Tolerance
+### Key Endpoints
 
-We'll employ circuit breakers to detect and prevent cascading failures when one microservice experiences issues. Our system will also include retries for failed requests, allowing us to recover from transient errors without impacting the overall system availability.
+* **POST /shorten**: Creates a new shortened URL from a given long URL
+	+ Request Body: `{ "long_url": "https://example.com/very-long-article" }`
+	+ Response: `{ "short_url": "https://example.com/short-url" }`
+* **GET /shortened/{short_url}**: Redirects to the original URL for a given shortened URL
+	+ Request: `GET https://example.com/short-url`
+	+ Response: `301 Moved Permanently -> https://example.com/very-long-article`
 
-In terms of data consistency, we'll use eventual consistency to ensure that our analytics data is always up-to-date, even in the presence of occasional delays or failures.
+### OpenAPI Specification (Optional)
 
-### Conclusion
+```
+openapi: 3.0.2
+info:
+  title: URL Shortener API
+  description: API for creating and managing shortened URLs
+  version: 1.0.0
 
-Our URL shortener system design provides a scalable, reliable, and performant foundation for handling high volumes of requests while ensuring fair usage and providing valuable insights into user behavior. By leveraging microservices architecture, caching, rate limiting, and other design principles, we can build a robust system that meets the demands of modern link-sharing applications.
+paths:
+  /shorten:
+    post:
+      summary: Create a new shortened URL
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                long_url:
+                  type: string
+      responses:
+        201:
+          description: Shortened URL created successfully
 
-**SEO Keywords**: url shortener, system design, scalability, reliability, performance
+  /shortened/{shortUrl}:
+    get:
+      summary: Redirect to the original URL for a given shortened URL
+      parameters:
+        - in: path
+          name: shortUrl
+          required: true
+          schema:
+            type: string
+      responses:
+        301:
+          description: Redirected to the original URL
+```
+
+**System Flow**
+The system flow involves the following steps:
+
+1. A user inputs a long URL on the frontend.
+2. The frontend sends an API request to the Shortener Service with the long URL.
+3. The Shortener Service generates a unique shortened URL and stores the original URL metadata in the database.
+4. The Redirect Service handles redirects from the short URL to the original URL, using the shortened_urls table to map the short URLs to their corresponding original URLs.
+5. The Analytics Service tracks analytics data for each shortened URL.
+
+**Challenges and Solutions**
+Potential challenges and solutions include:
+
+* **Collision Detection**: To minimize collisions between shortened URLs, we can use a combination of hashing algorithms and unique identifier generation.
+* **Scalability**: We can scale the system horizontally by adding more instances of the Shortener Service or vertically by upgrading hardware.
+
+**Scalability and Performance**
+Strategies to ensure scalability and performance include:
+
+* **Load Balancing**: Distributing incoming traffic across multiple instances of the frontend, Shortener Service, and Redirect Service.
+* **Caching**: Caching frequently accessed data in a fast storage layer (e.g., Redis) to reduce database queries.
+
+**Conclusion**
+In this blog post, we explored the design architecture for a URL shortener system. We discussed the high-level architecture, database schema, API design, and system flow. We also touched on potential challenges and solutions, as well as strategies for ensuring scalability and performance.

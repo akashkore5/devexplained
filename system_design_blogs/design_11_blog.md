@@ -1,136 +1,185 @@
 **Design a Travel Booking System**
-=====================================
 
+### Introduction
 
+In this document, we will explore the design of a system for managing travel bookings. The goal is to understand the requirements, challenges, and architectural decisions involved in building such a system.
 
-**SEO Keywords**: travel, booking system, system design, architecture, scalability, reliability, fault tolerance
+### Requirements
 
+#### Functional Requirements
 
-**Introduction**
-===============
+The core functionalities the system must provide include:
 
-As the world becomes increasingly connected, the travel industry has seen a significant surge in demand for online booking services. A well-designed travel booking system must be able to handle high volumes of requests, provide real-time availability and pricing information, and offer seamless integration with various transportation providers. In this article, we will explore the design of a scalable and reliable travel booking system that meets these demands.
+* User registration and login
+* Travel itinerary creation (flights, hotels, car rentals)
+* Itinerary management (editing, canceling)
+* Payment processing
+* Search and filtering for available travel options
+* Integration with third-party APIs for real-time availability and pricing
 
-**Problem Statement**
-=====================
+#### Non-Functional Requirements
 
-The problem we aim to solve is designing a robust and efficient travel booking system that can handle a large number of users and provide accurate and up-to-date information about available transportation options. The system must be able to integrate with various transportation providers, such as airlines, hotels, and car rental companies, and provide real-time availability and pricing information.
+The system must also meet the following non-functional requirements:
 
-**High-Level Design (HLD)**
-=====================
+* Performance: respond to user requests within 2 seconds
+* Scalability: handle up to 10,000 concurrent users
+* Reliability: maintain a uptime of at least 99.9%
+* Security: protect sensitive user data and ensure secure transactions
 
-### Overview of the System Architecture
+### High-Level Architecture
 
-The travel booking system is designed as a microservices-based architecture, consisting of multiple services that communicate with each other using APIs. The main services include:
+The system will consist of the following components:
 
-* **Travel Service**: responsible for handling user requests, searching for available transportation options, and providing real-time pricing information.
-* **Availability Service**: provides information about the availability of transportation options, including flight schedules and hotel room availability.
-* **Pricing Service**: calculates prices based on various factors such as demand, supply, and special promotions.
+1. **Frontend**: A web-based interface for users to interact with the system.
+2. **Backend**: A RESTful API for processing requests and interacting with the database.
+3. **Database**: A relational database management system for storing travel itinerary data.
+4. **Payment Gateway**: An integration with a third-party payment processor for secure transactions.
 
-### Microservices Involved
+The architecture will be based on a microservices approach, allowing for scalability and flexibility.
 
-Each microservice has a specific responsibility:
+### Database Schema
 
-* **Travel Service**:
-	+ Handles user requests for booking flights, hotels, or car rentals.
-	+ Searches for available transportation options using the Availability Service.
-	+ Calculates prices using the Pricing Service.
-* **Availability Service**:
-	+ Provides information about flight schedules and hotel room availability.
-	+ Updates availability information in real-time to reflect changes in demand.
-* **Pricing Service**:
-	+ Calculates prices based on various factors such as demand, supply, and special promotions.
-	+ Provides price information for flights, hotels, and car rentals.
+The database schema will include the following tables:
 
-### API Gateway
+1. **Users**:
+	* `id` (primary key)
+	* `username`
+	* `email`
+	* `password` (hashed)
+2. **Itineraries**:
+	* `id` (primary key)
+	* `user_id` (foreign key referencing Users table)
+	* `flight_numbers`
+	* `hotel_names`
+	* `car_rental_ids`
+3. **Flights**:
+	* `id` (primary key)
+	* `airline`
+	* `departure_time`
+	* `arrival_time`
+4. **Hotels**:
+	* `id` (primary key)
+	* `name`
+	* `address`
+5. **Car Rentals**:
+	* `id` (primary key)
+	* `company`
+	* `location`
 
-The system uses an API Gateway (AWS API Gateway) to manage incoming requests and route them to the relevant microservices. The API Gateway also handles authentication and rate limiting for each user.
+Indexing strategies will be used to optimize query performance.
 
-### Load Balancing Strategy
+### API Design
 
-To ensure high availability and scalability, we employ a Round-Robin load balancing strategy across multiple instances of each microservice.
+The system will expose the following APIs:
 
-### Caching Strategy
+1. **GET /itineraries**: Retrieve a list of itineraries for a user.
+2. **POST /itinerary**: Create a new itinerary.
+3. **PUT /itinerary**: Update an existing itinerary.
+4. **DELETE /itinerary**: Cancel an itinerary.
 
-We use Redis as our caching layer to store frequently accessed data, such as availability information and pricing details. This reduces the load on the underlying services and improves overall system performance.
+Example requests and responses are provided below:
 
-### Rate Limiting Approach
+* `GET /itineraries`:
+	+ Request: `curl -X GET http://localhost:8080/api/itineraries`
+	+ Response: `[{"id": 1, "user_id": 1, "flight_numbers": ["F123"], "hotel_names": ["Hotel XYZ"]}]`
+* `POST /itinerary`:
+	+ Request: `curl -X POST -H "Content-Type: application/json" -d '{"flight_numbers": ["F456"], "hotel_names": ["Hotel ABC"]}' http://localhost:8080/api/itinerary`
+	+ Response: `{"id": 2, "user_id": 1, "flight_numbers": ["F456"], "hotel_names": ["Hotel ABC"]}`
 
-To prevent abuse and ensure fair usage, we implement a token bucket rate limiting approach. This limits the number of requests that can be made within a certain time period to prevent overwhelming the system with excessive requests.
-
-### Database Selection
-
-We choose PostgreSQL as our relational database management system (RDBMS) for storing sensitive data such as user information and booking details. MongoDB is used for storing semi-structured data, such as availability information and pricing details.
-
-### ASCII Diagram of the Architecture
+OpenAPI specification:
+```yaml
+openapi: 3.0.0
+info:
+  title: Travel Booking System API
+  description: Provides APIs for managing travel itineraries.
+  version: 1.0.0
+paths:
+  /itineraries:
+    get:
+      summary: Retrieve a list of itineraries for a user.
+      responses:
+        200:
+          description: A list of itineraries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Itinerary'
+        404:
+          description: Itineraries not found.
+  /itinerary:
+    post:
+      summary: Create a new itinerary.
+      requestBody:
+        description: The new itinerary to create.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                flight_numbers:
+                  type: array
+                  items:
+                    type: string
+                hotel_names:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        201:
+          description: The new itinerary created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Itinerary'
+        400:
+          description: Invalid request.
 ```
-          +---------------+
-          |  API Gateway  |
-          +---------------+
-                  |
-                  |
-                  v
-+---------------+       +---------------+       +---------------+
-|  Travel Service  |       | Availability Service |       | Pricing Service |
-+---------------+       +---------------+       +---------------+
-```
 
-**Low-Level Design (LLD)**
-=====================
+### System Flow
 
-### Detailed Design of Key Microservices
+The system flow will be as follows:
 
-Each microservice has a specific responsibility and is designed to be scalable, reliable, and fault-tolerant.
+1. User registers and logs in to the system.
+2. The user creates a new itinerary by submitting a request to the `/itinerary` API.
+3. The backend processes the request and validates the input data.
+4. If the data is valid, the system retrieves available travel options from third-party APIs.
+5. The system then updates the itinerary with the retrieved information.
+6. The user can view and manage their itineraries using the `/itineraries` API.
 
-* **Travel Service**: uses Java-style API endpoints with routes, methods, request/response formats.
-```java
-GET /bookings HTTP/1.1
-Host: travel-booking-system.com
-Accept: application/json
+### Challenges and Solutions
 
-{
-  "flight": {
-    "origin": "New York",
-    "destination": "Los Angeles"
-  }
-}
-```
-### System Flow with Numbered Steps or Bullet Points
+Potential challenges:
 
-1. User submits a booking request.
-2. The API Gateway receives the request and routes it to the Travel Service.
-3. The Travel Service searches for available transportation options using the Availability Service.
-4. The Pricing Service calculates prices based on various factors such as demand, supply, and special promotions.
-5. The Travel Service returns the available transportation options and prices to the user.
+* Handling high traffic and large volumes of data
+* Integrating with multiple third-party APIs
+* Ensuring secure transactions and protecting sensitive user data
 
-**Scalability and Performance**
-=====================
+Solutions:
 
-### How the System Scales
+* Scale horizontally to handle increased load
+* Implement caching and queuing mechanisms for efficient API requests
+* Use SSL/TLS encryption and token-based authentication for secure transactions
 
-The system scales horizontally by adding more instances of each microservice as demand increases. We use sharding to distribute data across multiple nodes for improved performance.
+### Scalability and Performance
 
-### Performance Optimizations
+Strategies for ensuring scalability and performance:
 
-We implement indexing and query optimization techniques to improve database performance, ensuring that queries are executed efficiently and quickly.
+* Horizontal scaling: add more servers as needed
+* Load balancing: distribute traffic across multiple servers
+* Caching: store frequently accessed data in memory
+* Queueing: handle long-running tasks asynchronously
 
-**Reliability and Fault Tolerance**
-=====================
+### Security Considerations
 
-### Strategies for Handling Failures
+Security measures to protect the system and its data:
 
-We employ circuit breakers and retries to handle failures and ensure that the system remains available even in the presence of faults.
+* SSL/TLS encryption for secure transactions
+* Token-based authentication for user login
+* Input validation and sanitization for preventing SQL injection attacks
+* Regular security audits and penetration testing to identify vulnerabilities
 
-### Data Consistency
+### Conclusion
 
-We use eventual consistency to ensure data is updated correctly, but with some latency. This allows the system to remain available while updates are processed in the background.
-
-**Conclusion**
-==========
-
-In this article, we have designed a scalable and reliable travel booking system that meets the demands of high volumes of requests, real-time availability and pricing information, and seamless integration with various transportation providers. The system is designed as a microservices-based architecture, using API Gateway, load balancing, caching, rate limiting, and database selection to ensure scalability, performance, reliability, and fault tolerance.
-
-**Summary**
-=========
-
-The travel booking system is a scalable and reliable solution that meets the demands of high volumes of requests, real-time availability and pricing information, and seamless integration with various transportation providers. The system is designed as a microservices-based architecture using API Gateway, load balancing, caching, rate limiting, and database selection to ensure scalability, performance, reliability, and fault tolerance.
+In this blog post, we have outlined a beginner-friendly approach to designing a scalable and secure travel booking system. We have discussed the importance of scalability, performance, and security in modern software design and provided strategies for achieving these goals. By following best practices and using modern technologies, developers can build robust and reliable systems that meet the needs of their users.

@@ -5,9 +5,21 @@ import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import Layout from "../components/Layout";
 import { toast, Toaster } from "react-hot-toast";
-import { CodeBracketIcon, ChartBarIcon, UsersIcon, PuzzlePieceIcon, RocketLaunchIcon, LightBulbIcon, ChatBubbleLeftRightIcon, BookOpenIcon, UserIcon, AcademicCapIcon, StarIcon } from "@heroicons/react/24/solid";
+import {
+  CodeBracketIcon,
+  ChartBarIcon,
+  UsersIcon,
+  PuzzlePieceIcon,
+  RocketLaunchIcon,
+  LightBulbIcon,
+  ChatBubbleLeftRightIcon,
+  BookOpenIcon,
+  UserIcon,
+  AcademicCapIcon,
+  StarIcon,
+} from "@heroicons/react/24/solid";
 import DOMPurify from "isomorphic-dompurify";
-import { useSession } from "next-auth/react";
+import { useSession, signIn, signOut } from "next-auth/react";
 import { getServerSession } from "next-auth/next";
 import authOptions from "./api/auth/[...nextauth]";
 import problems from "../data/problems.json";
@@ -22,6 +34,9 @@ Chart.register(ArcElement, Tooltip, Legend);
 // Lazy-load Pie component
 const Pie = dynamic(() => import("react-chartjs-2").then((mod) => mod.Pie), { ssr: false });
 
+// Lazy-load Carousel
+const Carousel = dynamic(() => import("react-responsive-carousel").then((mod) => mod.Carousel), { ssr: false });
+
 // Colors for charts
 const COLORS = {
   solved: "#4f46e5",
@@ -32,14 +47,12 @@ const COLORS = {
 // Chart height
 const CHART_HEIGHT = "64"; // Tailwind h-64 (256px)
 
-// Lazy-load Carousel
-const Carousel = dynamic(() => import("react-responsive-carousel").then((mod) => mod.Carousel), { ssr: false });
-
 export default function Home({
   initialLoggedIn = false,
   initialName = "",
   totalLeetcodeQuestions,
   totalSystemDesignQuestions,
+  serverError = false,
 }) {
   const { data: session, status } = useSession();
   const [email, setEmail] = useState("");
@@ -52,6 +65,10 @@ export default function Home({
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [quickStart, setQuickStart] = useState(null);
   const [legendColor, setLegendColor] = useState("#1f2937"); // Default light mode
+  const [authError, setAuthError] = useState(serverError ? "Failed to connect to authentication service. Retrying..." : null);
+  const [retryCount, setRetryCount] = useState(serverError ? 1 : 0);
+  const maxRetries = 3;
+  const retryDelay = 5000; // 5 seconds
 
   // Theme detection for chart legend
   useEffect(() => {
@@ -68,16 +85,36 @@ export default function Home({
     return () => observer.disconnect();
   }, []);
 
+  // Handle session status and fetch progress
   useEffect(() => {
     if (status === "authenticated") {
       setIsLoggedIn(true);
       setUserName(session.user.name || "User");
+      setAuthError(null);
+      setRetryCount(0);
       fetchProgress();
-    } else {
+    } else if (status === "unauthenticated") {
       setIsLoggedIn(false);
       setUserName("");
+      setProgress({
+        leetcode: { viewed: [], solved: [], tagged: [] },
+        systemdesign: { viewed: [], solved: [], tagged: [] },
+      });
     }
   }, [status, session]);
+
+  // Retry logic for authentication errors
+  useEffect(() => {
+    if (authError && retryCount < maxRetries && status !== "authenticated") {
+      const timer = setTimeout(() => {
+        console.log(`Retrying session fetch (attempt ${retryCount}/${maxRetries})`);
+        setRetryCount(retryCount + 1);
+        signIn(null, { redirect: false }); // Silent retry
+      }, retryDelay);
+
+      return () => clearTimeout(timer);
+    }
+  }, [authError, retryCount, status]);
 
   const fetchProgress = useCallback(async () => {
     setIsLoadingProgress(true);
@@ -160,6 +197,16 @@ export default function Home({
     } catch (error) {
       console.error("Subscribe error:", error);
       toast.error("Something went wrong. Please try again!");
+    }
+  };
+
+  const handleSignIn = async (provider) => {
+    try {
+      await signIn(provider, { redirect: false });
+    } catch (err) {
+      console.error("Sign-in error:", err);
+      setAuthError("Failed to connect to authentication service. Retrying...");
+      setRetryCount(1);
     }
   };
 
@@ -319,6 +366,58 @@ export default function Home({
       },
     ],
   };
+
+  // Render loading or error state
+  if (status === "loading" || (authError && retryCount < maxRetries)) {
+    return (
+      <Layout isLoggedIn={false} userName="">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
+          <div className="text-center">
+            <svg
+              className="animate-spin h-8 w-8 text-indigo-600 dark:text-indigo-400 mx-auto"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+            <p className="text-gray-600 dark:text-gray-300 mt-4">
+              {authError || "Loading..."}
+            </p>
+            {authError && <p className="text-gray-600 dark:text-gray-300 mt-2">Retrying in {retryDelay / 1000} seconds...</p>}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (authError && retryCount >= maxRetries) {
+    return (
+      <Layout isLoggedIn={false} userName="">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
+          <div className="text-center">
+            <p className="text-gray-600 dark:text-gray-300 text-lg">
+              Service temporarily unavailable. Please try again later.
+            </p>
+            <motion.button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              aria-label="Refresh page"
+            >
+              Refresh Page
+            </motion.button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout isLoggedIn={isLoggedIn} userName={userName}>
@@ -771,120 +870,121 @@ export default function Home({
         </div>
       </section>
 
-      {/* Testimonials Section */}<section className="py-12 sm:py-16 bg-gray-50 dark:bg-slate-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.h2
-          initial={{ opacity: 0, y: -20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center text-gray-900 dark:text-white mb-8 sm:mb-12"
-        >
-          Voices from Our Community
-        </motion.h2>
-        <div className="w-full max-w-3xl lg:max-w-4xl mx-auto overflow-hidden">
-          <Carousel
-            showThumbs={false}
-            autoPlay={true}
-            interval={5000}
-            infiniteLoop={true}
-            showStatus={false}
-            dynamicHeight={false}
-            emulateTouch={true}
-            swipeable={true}
-            showArrows={true}
-            centerMode={true}
-            centerSlidePercentage={100}
-            showSlides={1}
-            transitionTime={500}
-            renderIndicator={(onClick, isSelected, index) => (
-              <button
-                className={`w-2 h-2 sm:w-3 sm:h-3 mx-1 rounded-full ${
-                  isSelected ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-500'
-                } focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                onClick={onClick}
-                onKeyDown={(e) => e.key === 'Enter' && onClick(e)}
-                aria-label={`Go to testimonial ${index + 1}`}
-              />
-            )}
-            renderArrowPrev={(onClick, hasPrev) => (
-              hasPrev && (
-                <button
-                  className="hidden sm:block absolute left-0 sm:-left-12 top-1/2 -translate-y-1/2 bg-indigo-600 text-white p-2 sm:p-3 rounded-full z-10 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  onClick={onClick}
-                  onKeyDown={(e) => e.key === 'Enter' && onClick(e)}
-                  aria-label="Previous testimonial"
-                >
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-              )
-            )}
-            renderArrowNext={(onClick, hasNext) => (
-              hasNext && (
-                <button
-                  className="hidden sm:block absolute right-0 sm:-right-12 top-1/2 -translate-y-1/2 bg-indigo-600 text-white p-2 sm:p-3 rounded-full z-10 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  onClick={onClick}
-                  onKeyDown={(e) => e.key === 'Enter' && onClick(e)}
-                  aria-label="Next testimonial"
-                >
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              )
-            )}
-            className="w-full"
+      {/* Testimonials Section */}
+      <section className="py-12 sm:py-16 bg-gray-50 dark:bg-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.h2
+            initial={{ opacity: 0, y: -20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center text-gray-900 dark:text-white mb-8 sm:mb-12"
           >
-            {[
-              {
-                quote: "DevExplained’s Leetcode solutions helped me land my dream job at a FAANG company!",
-                author: "Jane Doe, Software Engineer",
-              },
-              {
-                quote: "The system design guides are incredibly detailed and easy to follow.",
-                author: "John Smith, CS Student",
-              },
-              {
-                quote: "The community forums are a lifesaver for discussing tough problems.",
-                author: "Emily Chen, Developer",
-              },
-              {
-                quote: "Learning paths gave me a clear roadmap to improve my skills.",
-                author: "Michael Lee, Tech Lead",
-              },
-              {
-                quote: "The coding challenges keep me sharp and motivated!",
-                author: "Sarah Kim, Software Developer",
-              },
-              {
-                quote: "DevExplained’s resources made my interview prep seamless.",
-                author: "David Patel, Engineer",
-              },
-            ].map((testimonial, index) => (
-              <motion.div
-                key={`testimonial-${index}`}
-                className="w-full h-auto min-h-[200px] sm:min-h-[250px] flex flex-col items-center justify-center py-6 sm:py-8 px-4 sm:px-6 bg-white dark:bg-slate-800 rounded-xl shadow-md mx-2"
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.3 }}
-                aria-label={`Testimonial from ${testimonial.author}`}
-              >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-600 dark:bg-indigo-500 rounded-full flex items-center justify-center mb-4">
-                  <UserIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <p className="text-sm sm:text-base lg:text-lg text-gray-600 dark:text-gray-300 mb-4 break-words max-w-full text-center">
-                  "{testimonial.quote}"
-                </p>
-                <p className="text-sm sm:text-base text-indigo-600 dark:text-indigo-400 font-semibold text-center">
-                  {testimonial.author}
-                </p>
-              </motion.div>
-            ))}
-          </Carousel>
+            Voices from Our Community
+          </motion.h2>
+          <div className="w-full max-w-3xl lg:max-w-4xl mx-auto overflow-hidden">
+            <Carousel
+              showThumbs={false}
+              autoPlay={true}
+              interval={5000}
+              infiniteLoop={true}
+              showStatus={false}
+              dynamicHeight={false}
+              emulateTouch={true}
+              swipeable={true}
+              showArrows={true}
+              centerMode={true}
+              centerSlidePercentage={100}
+              showSlides={1}
+              transitionTime={500}
+              renderIndicator={(onClick, isSelected, index) => (
+                <button
+                  className={`w-2 h-2 sm:w-3 sm:h-3 mx-1 rounded-full ${
+                    isSelected ? "bg-indigo-600" : "bg-gray-300 dark:bg-gray-500"
+                  } focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                  onClick={onClick}
+                  onKeyDown={(e) => e.key === "Enter" && onClick(e)}
+                  aria-label={`Go to testimonial ${index + 1}`}
+                />
+              )}
+              renderArrowPrev={(onClick, hasPrev) => (
+                hasPrev && (
+                  <button
+                    className="hidden sm:block absolute left-0 sm:-left-12 top-1/2 -translate-y-1/2 bg-indigo-600 text-white p-2 sm:p-3 rounded-full z-10 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    onClick={onClick}
+                    onKeyDown={(e) => e.key === "Enter" && onClick(e)}
+                    aria-label="Previous testimonial"
+                  >
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                )
+              )}
+              renderArrowNext={(onClick, hasNext) => (
+                hasNext && (
+                  <button
+                    className="hidden sm:block absolute right-0 sm:-right-12 top-1/2 -translate-y-1/2 bg-indigo-600 text-white p-2 sm:p-3 rounded-full z-10 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    onClick={onClick}
+                    onKeyDown={(e) => e.key === "Enter" && onClick(e)}
+                    aria-label="Next testimonial"
+                  >
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                )
+              )}
+              className="w-full"
+            >
+              {[
+                {
+                  quote: "DevExplained’s Leetcode solutions helped me land my dream job at a FAANG company!",
+                  author: "Jane Doe, Software Engineer",
+                },
+                {
+                  quote: "The system design guides are incredibly detailed and easy to follow.",
+                  author: "John Smith, CS Student",
+                },
+                {
+                  quote: "The community forums are a lifesaver for discussing tough problems.",
+                  author: "Emily Chen, Developer",
+                },
+                {
+                  quote: "Learning paths gave me a clear roadmap to improve my skills.",
+                  author: "Michael Lee, Tech Lead",
+                },
+                {
+                  quote: "The coding challenges keep me sharp and motivated!",
+                  author: "Sarah Kim, Software Developer",
+                },
+                {
+                  quote: "DevExplained’s resources made my interview prep seamless.",
+                  author: "David Patel, Engineer",
+                },
+              ].map((testimonial, index) => (
+                <motion.div
+                  key={`testimonial-${index}`}
+                  className="w-full h-auto min-h-[200px] sm:min-h-[250px] flex flex-col items-center justify-center py-6 sm:py-8 px-4 sm:px-6 bg-white dark:bg-slate-800 rounded-xl shadow-md mx-2"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.3 }}
+                  aria-label={`Testimonial from ${testimonial.author}`}
+                >
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-600 dark:bg-indigo-500 rounded-full flex items-center justify-center mb-4">
+                    <UserIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  </div>
+                  <p className="text-sm sm:text-base lg:text-lg text-gray-600 dark:text-gray-300 mb-4 break-words max-w-full text-center">
+                    "{testimonial.quote}"
+                  </p>
+                  <p className="text-sm sm:text-base text-indigo-600 dark:text-indigo-400 font-semibold text-center">
+                    {testimonial.author}
+                  </p>
+                </motion.div>
+              ))}
+            </Carousel>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
       {/* Community Section */}
       <section className="py-16 bg-white dark:bg-slate-800">
@@ -958,7 +1058,7 @@ export default function Home({
                   variants={cardVariants}
                   initial="hidden"
                   animate="visible"
-                  className="p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-2"
+                  className="p-6 bg-white dark(bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-2"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -1021,7 +1121,16 @@ export default function Home({
 }
 
 export async function getServerSideProps({ req, res }) {
-  const session = await getServerSession(req, res, authOptions);
+  let session = null;
+  let serverError = false;
+
+  try {
+    session = await getServerSession(req, res, authOptions);
+  } catch (error) {
+    console.error("getServerSideProps: Failed to fetch session:", error.message, error.stack);
+    serverError = true;
+    // Optionally log to an external service (e.g., Sentry)
+  }
 
   return {
     props: {
@@ -1029,6 +1138,7 @@ export async function getServerSideProps({ req, res }) {
       initialName: session?.user?.name || "",
       totalLeetcodeQuestions: problems.length,
       totalSystemDesignQuestions: systemDesignQuestions.length,
+      serverError,
     },
   };
 }

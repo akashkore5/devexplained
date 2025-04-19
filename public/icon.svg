@@ -1,0 +1,23 @@
+<svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background: Circle with glow -->
+  <circle cx="50" cy="50" r="45" fill="#f3f4f6" class="dark:fill-slate-800"/>
+  <circle cx="50" cy="50" r="45" fill="url(#glow)" opacity="0.2"/>
+  
+  <!-- Lightbulb -->
+  <path d="M50 25C42 25 35 32 35 40C35 46 38 51 42 54V60H58V54C62 51 65 46 65 40C65 32 58 25 50 25Z" fill="#4f46e5"/>
+  <rect x="45" y="60" width="10" height="5" fill="#4f46e5"/>
+  
+  <!-- Code Bracket inside Lightbulb -->
+  <path d="M45 35C45 33 47 33 47 33H49V47H47C47 47 45 47 45 45C45 43 47 43 47 43C47 43 45 43 45 41C45 39 47 39 47 39H49V33" fill="#facc15"/>
+  
+  <!-- Spark (Success) -->
+  <path d="M65 30L70 25L75 30" stroke="#facc15" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Glow Gradient -->
+  <defs>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#facc15" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>

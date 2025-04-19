@@ -1,193 +1,218 @@
-Here is the comprehensive blog post on designing a web crawler:
+**Design a Web Crawler**
 
----
-title: "Design a Web Crawler"
-seo: "web, crawler, system design"
----
+### Introduction
 
-## **Introduction**
+In this document, we will explore the design of a system for building a web crawler. The goal is to understand the requirements, challenges, and architectural decisions involved in building such a system.
 
-As the world becomes increasingly digital, the importance of crawling and indexing websites has never been more crucial. A web crawler, also known as a spider or bot, is a software application that automatically navigates the internet to gather information from various sources. This process involves scraping data from targeted websites, processing the gathered data, and storing it in a database for future use.
+### Requirements
 
-In this blog post, we will delve into the design of a web crawler system architecture, focusing on its high-level and low-level designs, scalability, reliability, and fault tolerance.
+#### Functional Requirements
 
-## **Problem Statement**
+The core functionalities the system must provide include:
 
-The primary problem being solved is designing an efficient and scalable web crawler that can handle large amounts of data from various sources while maintaining data integrity and consistency. The web crawler should be able to:
+* Crawling: Ability to crawl and extract relevant data from target websites
+* Data storage: Storage of extracted data in a database or file system
+* Filtering: Option to filter extracted data based on predefined criteria (e.g., keywords, domains)
+* Reporting: Generation of reports summarizing crawled data
 
-1. Extract relevant information (e.g., text, images) from target websites.
-2. Handle different website structures and formatting.
-3. Process gathered data efficiently for storage or further analysis.
-4. Scale horizontally as the need arises.
+Specific use cases or scenarios include:
 
-## **High-Level Design (HLD)**
+* Crawling a list of targeted websites for market research or competitor analysis
+* Extracting product information from e-commerce sites for inventory management
+* Indexing web pages for search engines or other applications
 
-### Overview of the System Architecture
+#### Non-Functional Requirements
 
-The web crawler system consists of several microservices working together to achieve its objectives:
+The system must also consider non-functional requirements, such as:
 
-1. **Crawler Service**: Responsible for navigating and extracting information from target websites.
-2. **Data Processor**: Handles data processing, filtering, and transformation.
-3. **Database Service**: Stores processed data in a database for future use.
+* Performance: Ability to handle increased load and maintain performance under heavy usage
+* Scalability: Capacity to expand and adapt to changing demands without sacrificing performance
+* Reliability: High availability and low latency to ensure consistent service delivery
+* Security: Protection of crawled data and system from unauthorized access or tampering
 
-### Microservices
+### High-Level Architecture
 
-* **Crawler Service**:
-	+ Responsible for sending HTTP requests to target websites and parsing HTML responses.
-	+ Handles website crawling and data extraction (e.g., text, images).
-* **Data Processor**:
-	+ Processes gathered data by filtering, transforming, and cleaning it.
-	+ Applies business logic to extracted data (e.g., sentiment analysis, entity recognition).
+The high-level architecture of the web crawler system consists of several key components:
 
-### API Gateway
-
-We will use AWS API Gateway as our API gateway. It provides a scalable and secure entry point for incoming requests.
-
-### Load Balancing Strategy
-
-To ensure high availability and scalability, we will employ Round-Robin load balancing across multiple instances of the Crawler Service.
-
-### Caching Strategy
-
-We will utilize Redis as our caching layer to store frequently accessed data. This will help reduce the number of database queries and improve system performance.
-
-### Rate Limiting Approach
-
-To prevent abuse and overload, we will implement a token bucket rate limiting approach using AWS Lambda functions.
-
-### Database Selection
-
-We will use PostgreSQL as our relational database management system (RDBMS) for storing processed data. For large-scale data processing, MongoDB or Cassandra could be used.
-
-### ASCII Diagram of the Architecture
-
-```
-          +---------------+
-          |  API Gateway  |
-          +---------------+
-                  |
-                  |  Round-Robin
-                  v
-+-----------------------+
-|       Crawler Service    |
-|  (Multiple Instances)   |
-+-----------------------+
-                  |
-                  |  Redis Cache
-                  v
-+-----------------------+
-|      Data Processor     |
-+-----------------------+
-                  |
-                  |  PostgreSQL Database
-                  v
-+-----------------------+
-|        System Flow      |
-+-----------------------+
-```
-
-## **Low-Level Design (LLD)**
-
-### Crawler Service
-
-* `crawlWebsite(websiteUrl)`: Sends an HTTP request to the target website and parses the HTML response.
-* `extractData(htmlResponse)`: Extracts relevant information from the parsed HTML response.
-
-### Data Processor
-
-* `processData(data)`: Applies business logic to extracted data (e.g., sentiment analysis, entity recognition).
-* `transformData(data)`: Transforms processed data into a desired format for storage or further analysis.
+1. **Crawler**: Responsible for crawling target websites, extracting relevant data, and storing it in a database.
+2. **Database**: Stores extracted data, allowing for efficient querying and retrieval.
+3. **Filtering Engine**: Applies filtering criteria to extracted data, removing irrelevant or redundant information.
+4. **Reporting Module**: Generates reports summarizing crawled data, providing insights and analysis.
 
 ### Database Schema
 
-```sql
-CREATE TABLE crawled_data (
-    id SERIAL PRIMARY KEY,
-    website_url VARCHAR(255),
-    data TEXT NOT NULL
-);
-```
+The database schema consists of the following tables:
 
-### API Endpoints (in Java)
+* **Websites** (website_id, domain, crawl_frequency)
+* **Pages** (page_id, website_id, url, content)
+* **Extracted Data** (data_id, page_id, data_type, value)
 
-```java
-@RestController
-public class CrawlerController {
-    
-    @PostMapping("/crawl")
-    public ResponseEntity<String> crawlWebsite(@RequestBody WebsiteRequest request) {
-        // Send HTTP request to target website and parse HTML response
-        String htmlResponse = crawlerService.crawl(request.getWebsiteUrl());
-        
-        // Extract relevant information from parsed HTML response
-        String data = extractor.extractData(htmlResponse);
-        
-        return ResponseEntity.ok(data);
-    }
-}
+Relationships:
+
+* A website can have multiple pages.
+* A page belongs to one website.
+* Extracted data is associated with a specific page.
+
+Indexing strategies include:
+
+* Indexing the Websites table on the crawl_frequency column for efficient filtering
+* Creating an index on the Pages table's url column for fast lookup
+
+### API Design
+
+The web crawler system provides several key endpoints:
+
+* **GET /crawl**: Initiates crawling of target websites and pages.
+* **GET /data/{page_id}**: Retrieves extracted data associated with a specific page.
+* **POST /filter**: Applies filtering criteria to extracted data.
+
+Example requests and responses include:
+
+* **GET /crawl?website_id=1&pages=5**: Crawl 5 pages from website with ID 1.
+* **GET /data/123**: Retrieve extracted data for page with ID 123.
+* **POST /filter?keyword=marketing**: Filter extracted data by keyword "marketing".
+
+### OpenAPI Specification
+
+The OpenAPI spec for the APIs is as follows:
+
+```yaml
+openapi: 3.0.2
+info:
+  title: Web Crawler API
+  description: API for crawling, extracting, and filtering web pages.
+  version: 1.0.0
+paths:
+  /crawl:
+    get:
+      summary: Initiate crawling of target websites and pages.
+      responses:
+        200:
+          description: Crawling initiated successfully.
+        500:
+          description: Error initiating crawling.
+  /data/{page_id}:
+    get:
+      summary: Retrieve extracted data associated with a specific page.
+      parameters:
+        - in: path
+          name: page_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Extracted data retrieved successfully.
+        404:
+          description: Page not found.
+  /filter:
+    post:
+      summary: Apply filtering criteria to extracted data.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                keyword:
+                  type: string
+        required: true
+      responses:
+        200:
+          description: Filtering applied successfully.
+        500:
+          description: Error applying filtering.
+
 ```
 
 ### System Flow
 
-1. Receive a `WebsiteRequest` object containing the target website URL.
-2. Send an HTTP request to the target website and parse the HTML response using the Crawler Service.
-3. Extract relevant information from the parsed HTML response using the Data Processor.
-4. Process the extracted data by applying business logic (e.g., sentiment analysis, entity recognition).
-5. Store the processed data in the PostgreSQL Database.
+The system flow is as follows:
 
-## **Scalability and Performance**
+1. The Crawler component initiates crawling of target websites and pages, extracting relevant data.
+2. The extracted data is stored in the Database.
+3. The Filtering Engine applies filtering criteria to the extracted data, removing irrelevant or redundant information.
+4. The Reporting Module generates reports summarizing crawled data, providing insights and analysis.
 
-To ensure scalability and performance:
+### Challenges and Solutions
 
-* Horizontal scaling: Increase the number of instances for each microservice as needed.
-* Data sharding: Partition large datasets across multiple databases or nodes to improve read and write performance.
+Potential challenges include:
 
-## **Reliability and Fault Tolerance**
+* Handling increased load and maintaining performance under heavy usage.
+	+ Solution: Implement load balancing, caching, and parallel processing.
+* Ensuring reliability and availability of the system.
+	+ Solution: Implement redundant systems, monitoring, and failover procedures.
+* Protecting crawled data and system from unauthorized access or tampering.
+	+ Solution: Implement encryption, authentication, and access control mechanisms.
 
-Strategies for handling failures:
+### Scalability and Performance
 
-* Circuit breakers: Monitor request latency and frequency, and automatically disable failing services.
-* Retries: Implement retry mechanisms to handle temporary failures and maintain system availability.
+Strategies to ensure scalability and performance include:
 
-Data consistency:
+* Load balancing to distribute traffic across multiple instances.
+* Caching frequently accessed data to reduce load on the system.
+* Parallel processing to handle increased load and maintain performance.
+* Monitoring system performance and adjusting configurations as needed.
 
-* Eventual consistency: Allow some degree of inconsistency in data storage to ensure high availability.
-* Strong consistency: Ensure data consistency at the cost of higher latency or reduced availability.
+### Security Considerations
 
-## **Conclusion**
+Security measures to protect the system and its data include:
 
-In this blog post, we designed a web crawler system architecture that is scalable, reliable, and fault-tolerant. We explored the high-level design, low-level design, scalability, reliability, and fault tolerance strategies for our web crawler system. By applying these principles, you can build a robust and efficient web crawler that meets your specific requirements.
+* Encryption of crawled data and system communications.
+* Authentication and access control mechanisms to restrict unauthorized access.
+* Regular security audits and penetration testing to identify vulnerabilities.
 
-**Summary**
+### ASCII Diagrams
 
-In summary, designing a web crawler involves:
-
-1. Identifying the problem being solved (e.g., extracting relevant information from target websites).
-2. Designing a scalable and reliable architecture (e.g., microservices, API Gateway, load balancing, caching, rate limiting).
-3. Implementing data processing and transformation logic.
-4. Ensuring system flow and fault tolerance through circuit breakers, retries, and data consistency strategies.
-
-**ASCII Diagrams**
-
-[Insert ASCII diagrams for the system architecture]
-
-**OpenAPI Specs**
-
-[Insert OpenAPI specification for the API endpoints]
-
-**Sample SQL Schema**
-
-[Insert sample SQL schema for the database]
-
-**Example JSON API Response**
-
-```json
-{
-    "data": {
-        "text": "This is an example of web crawler data",
-        "images": ["image1.jpg", "image2.jpg"]
-    }
-}
+Here is a simple ASCII diagram illustrating the architecture:
+```
+          +---------------+
+          |  Crawler    |
+          +---------------+
+                  |
+                  |  Extracted
+                  |  data stored
+                  v
+          +---------------+
+          | Database   |
+          +---------------+
+                  |
+                  | Filtering
+                  | Engine applies
+                  | criteria
+                  v
+          +---------------+
+          | Reporting  |
+          +---------------+
 ```
 
-I hope this comprehensive blog post helps you design a robust and efficient web crawler system!
+### Sample SQL Schema
+
+Here is a sample SQL script for creating the database schema:
+```sql
+CREATE TABLE Websites (
+    website_id INT PRIMARY KEY,
+    domain VARCHAR(255),
+    crawl_frequency INT
+);
+
+CREATE TABLE Pages (
+    page_id INT PRIMARY KEY,
+    website_id INT,
+    url VARCHAR(255),
+    content TEXT,
+    FOREIGN KEY (website_id) REFERENCES Websites(website_id)
+);
+
+CREATE TABLE ExtractedData (
+    data_id INT PRIMARY KEY,
+    page_id INT,
+    data_type VARCHAR(255),
+    value TEXT,
+    FOREIGN KEY (page_id) REFERENCES Pages(page_id)
+);
+```
+
+### Conclusion
+
+In this blog post, we explored the design of a web crawler system that extracts and filters data from target websites. We discussed the key components, API design, database schema, system flow, challenges and solutions, scalability and performance strategies, security considerations, and provided an ASCII diagram and sample SQL script for creating the database schema. This system is designed to be scalable, secure, and easy to maintain, making it suitable for a wide range of applications.

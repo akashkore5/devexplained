@@ -2,43 +2,20 @@ import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { MongoDBAdapter } from '@next-auth/mongodb-adapter';
-import { MongoClient } from 'mongodb';
-
-const uri = process.env.MONGODB_URI;
-if (!uri) {
-  throw new Error('Missing MONGODB_URI environment variable');
-}
-
-const client = new MongoClient(uri, {
-  minPoolSize: 2,
-  maxPoolSize: 10,
-  connectTimeoutMS: 10000,
-  serverSelectionTimeoutMS: 10000,
-  retryWrites: true,
-  retryReads: true,
-});
-
-let clientPromise;
-
-if (process.env.NODE_ENV === 'development') {
-  if (!global._mongoClientPromise) {
-    console.log('Initializing MongoDB client promise for NextAuth (development)');
-    global._mongoClientPromise = client.connect().catch((error) => {
-      console.error('MongoDB connection error:', error.message, error.stack);
-      throw new Error(`Database connection failed: ${error.message}`);
-    });
-  }
-  clientPromise = global._mongoClientPromise;
-} else {
-  console.log('Initializing MongoDB client promise for NextAuth (production)');
-  clientPromise = client.connect().catch((error) => {
-    console.error('MongoDB connection error:', error.message, error.stack);
-    throw new Error(`Database connection failed: ${error.message}`);
-  });
-}
+import { getMongoClient, getDb } from '../../../lib/mongodb';
+import bcrypt from 'bcrypt';
 
 export const authOptions = {
-  adapter: MongoDBAdapter(clientPromise, { databaseName: 'leetcodesolve' }),
+  adapter: async () => {
+    try {
+      const client = await getMongoClient();
+      return MongoDBAdapter(client, { databaseName: 'leetcodesolve' });
+    } catch (error) {
+      console.error('NextAuth: Failed to initialize MongoDBAdapter:', error.message);
+      // Fallback to no adapter (JWT-only sessions)
+      return null;
+    }
+  },
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -64,15 +41,13 @@ export const authOptions = {
         }
 
         try {
-          const client = await clientPromise;
-          const db = client.db('leetcodesolve');
+          const db = await getDb();
           const user = await db.collection('users').findOne({ email: credentials.email });
 
           if (!user || !user.password) {
             throw new Error('Invalid email or password');
           }
 
-          const bcrypt = await import('bcrypt');
           const isMatch = await bcrypt.compare(credentials.password, user.password);
           if (!isMatch) {
             throw new Error('Invalid email or password');
@@ -82,7 +57,7 @@ export const authOptions = {
           return { id: user._id.toString(), email: user.email, name: user.name };
         } catch (error) {
           console.error('CredentialsProvider: Authorization error:', error.message, error.stack);
-          throw new Error(`bad auth: ${error.message}`);
+          throw new Error(`Authentication failed: ${error.message}`);
         }
       },
     }),
@@ -121,5 +96,15 @@ export const authOptions = {
 
 export default async function handler(req, res) {
   console.log(`NextAuth: ${req.method} ${req.url}`, req.query);
-  return await NextAuth(req, res, authOptions);
+  try {
+    const options = { ...authOptions };
+    options.adapter = await authOptions.adapter();
+    return await NextAuth(req, res, options);
+  } catch (error) {
+    console.error('NextAuth: Handler error:', error.message, error.stack);
+    res.status(503).json({
+      error: 'Service temporarily unavailable. Please try again later.',
+      retryAfter: 30, // Suggest retrying after 30 seconds
+    });
+  }
 }

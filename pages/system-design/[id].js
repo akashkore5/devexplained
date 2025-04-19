@@ -405,6 +405,13 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
+                  p({ node, children }) {
+                    // Prevent <pre> from being wrapped in <p>
+                    if (node.children.some((child) => child.tagName === "pre")) {
+                      return <>{children}</>;
+                    }
+                    return <p>{children}</p>;
+                  },
                   code({ node, inline, className = "", children, ...props }) {
                     const content = String(children).trim();
                     const isAscii = content.includes("──") || content.includes("│") || content.includes("┌");
@@ -487,7 +494,7 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
 
 export async function getStaticPaths() {
   const paths = questions.map((q) => ({
-    params: { id: q.id },
+    params: { id: q.id.toString() }, // Ensure id is a string
   }));
   return { paths, fallback: false };
 }
@@ -495,15 +502,35 @@ export async function getStaticPaths() {
 export async function getStaticProps({ params }) {
   try {
     const filePath = path.join(process.cwd(), "system_design_blogs", `design_${params?.id}_blog.md`);
-    const fileContent = fs.readFileSync(filePath, "utf8");
-    const { data: frontmatter, content } = matter(fileContent);
+    let frontmatter, content;
+    try {
+      const fileContent = fs.readFileSync(filePath, "utf8");
+      const { data, content: markdownContent } = matter(fileContent);
+      frontmatter = data;
+      content = markdownContent;
+    } catch (error) {
+      console.error(`Error reading blog file for ID ${params?.id}:`, error);
+      // Fallback to question data if blog file is missing
+      const currentQuestion = questions.find((q) => q.id.toString() === params?.id);
+      if (!currentQuestion) {
+        console.error(`No question found for ID ${params?.id}`);
+        return { notFound: true };
+      }
+      frontmatter = {
+        title: currentQuestion.title || "Untitled",
+        difficulty: currentQuestion.difficulty || "Unknown",
+        tags: currentQuestion.tags || [],
+        date: currentQuestion.date || null,
+      };
+      content = `## Placeholder Content\n\nThis system design blog is under construction. Please check back later.`;
+    }
 
-    const currentQuestion = questions.find((q) => q.id === params?.id);
+    const currentQuestion = questions.find((q) => q.id.toString() === params?.id) || {};
     const relatedQuestions = questions
       .filter(
         (q) =>
-          q.id !== params?.id &&
-          q.tags.some((tag) => currentQuestion?.tags.includes(tag))
+          q.id.toString() !== params?.id &&
+          q.tags.some((tag) => currentQuestion?.tags?.includes(tag))
       )
       .slice(0, 5)
       .map((q) => ({ id: q.id, title: q.title }));
@@ -511,17 +538,17 @@ export async function getStaticProps({ params }) {
     return {
       props: {
         frontmatter: {
-          title: frontmatter.title || currentQuestion?.title || "Untitled",
-          difficulty: frontmatter.difficulty || currentQuestion?.difficulty || "Unknown",
-          tags: frontmatter.tags || currentQuestion?.tags || [],
-          date: frontmatter.date || currentQuestion?.date || null,
+          title: frontmatter.title || currentQuestion.title || "Untitled",
+          difficulty: frontmatter.difficulty || currentQuestion.difficulty || "Unknown",
+          tags: frontmatter.tags || currentQuestion.tags || [],
+          date: frontmatter.date || currentQuestion.date || null,
         },
         content,
         relatedQuestions,
       },
     };
   } catch (error) {
-    console.error(`Error loading system design blog for ID ${params?.id}:`, error);
+    console.error(`Unexpected error for ID ${params?.id}:`, error);
     return {
       notFound: true,
     };

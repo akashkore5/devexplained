@@ -1,7 +1,6 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import { put, list, del } from "@vercel/blob";
+import { put, list } from "@vercel/blob";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method not allowed" });
   }
@@ -18,10 +17,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const blobKey = "subscribers.json"; 
-    
+    const blobKey = "subscribers.json";
+
     // Fetch existing subscribers
-    let subscribers: { email: string; date: string }[] = [];
+    let subscribers = [];
     try {
       const { blobs } = await list({ prefix: blobKey });
       if (blobs.length > 0) {

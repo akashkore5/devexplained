@@ -380,11 +380,11 @@ export default function Leetcode({ initialViewMode = "table" }) {
         <meta property="og:type" content="website" />
         <meta
           property="og:url"
-          content={`https://leetcodesolve.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`}
+          content={`https://devexplained.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`}
         />
         <meta
           property="og:image"
-          content="https://leetcodesolve.vercel.app/og-image.jpg"
+          content="https://devexplained.vercel.app/og-image.jpg"
         />
         <meta name="twitter:card" content="summary_large_image" />
         <meta
@@ -397,11 +397,11 @@ export default function Leetcode({ initialViewMode = "table" }) {
         />
         <meta
           name="twitter:image"
-          content="https://leetcodesolve.vercel.app/twitter-image.jpg"
+          content="https://devexplained.vercel.app/twitter-image.jpg"
         />
         <link
           rel="canonical"
-          href={`https://leetcodesolve.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`}
+          href={`https://devexplained.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`}
         />
         <script
           type="application/ld+json"
@@ -410,13 +410,13 @@ export default function Leetcode({ initialViewMode = "table" }) {
               JSON.stringify({
                 "@context": "https://schema.org",
                 "@type": "ItemList",
-                "url": `https://leetcodesolve.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`,
+                "url": `https://devexplained.vercel.app/leetcode${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`,
                 "name": `Leetcode ${search || "all"} problems`,
                 "description": `Find solutions to ${search || "all"} Leetcode problems with expert tutorials.`,
                 "itemListElement": filtered.map((p, index) => ({
                   "@type": "ListItem",
                   "position": index + 1,
-                  "url": `https://leetcodesolve.vercel.app/leetcode/${p.id}`,
+                  "url": `https://devexplained.vercel.app/leetcode/${p.id}`,
                   "name": `${p.id}. ${p.title}`,
                   "description": `Difficulty: ${p.difficulty}, Tags: ${p.tags?.join(", ") || ""}`,
                 })),

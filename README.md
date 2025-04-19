@@ -1,10 +1,10 @@
-<!-- # LeetcodeSolve
+<!-- # DevExplained
 <!-- 
-![LeetcodeSolve](https://img.shields.io/badge/Next.js-14.2.15-black?logo=next.js)
+![DevExplained](https://img.shields.io/badge/Next.js-14.2.15-black?logo=next.js)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.14-38B2AC?logo=tailwind-css)
 ![License](https://img.shields.io/badge/License-MIT-blue) 
 
-**LeetcodeSolve** is a modern web application built with Next.js to provide detailed Leetcode problem solutions in Java, C++, and Python. It features a responsive design, animated UI, dark mode, and efficient navigation for coding enthusiasts preparing for technical interviews.
+**DevExplained** is a modern web application built with Next.js to provide detailed Leetcode problem solutions in Java, C++, and Python. It features a responsive design, animated UI, dark mode, and efficient navigation for coding enthusiasts preparing for technical interviews.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -17,7 +17,7 @@
 
 ## Overview
 
-LeetcodeSolve offers a clean, user-friendly platform to explore Leetcode problems with in-depth explanations and multi-language solutions. Built with Next.js and styled using Tailwind CSS, it includes a shared layout for consistent navigation, custom dropdowns for filtering, and Framer Motion animations for a polished experience. The app supports dark mode, responsive layouts, and static site generation for performance.
+DevExplained offers a clean, user-friendly platform to explore Leetcode problems with in-depth explanations and multi-language solutions. Built with Next.js and styled using Tailwind CSS, it includes a shared layout for consistent navigation, custom dropdowns for filtering, and Framer Motion animations for a polished experience. The app supports dark mode, responsive layouts, and static site generation for performance.
 
 ### Tech Stack
 - **Frontend**: Next.js 14.2.15, React 18
@@ -45,8 +45,8 @@ LeetcodeSolve offers a clean, user-friendly platform to explore Leetcode problem
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/leetcodesolve.git
-   cd leetcodesolve
+   git clone https://github.com/your-username/DevExplained.git
+   cd DevExplained
    ```
 
 2. **Install Dependencies**:
@@ -126,7 +126,7 @@ LeetcodeSolve offers a clean, user-friendly platform to explore Leetcode problem
 ## File Structure
 
 ```
-leetcodesolve/
+DevExplained/
 ├── components/
 │   ├── Dropdown.js          # Animated dropdown for filters
 │   ├── Layout.js           # Shared header/footer layout
@@ -181,4 +181,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ---
 ---
 
-*Built with ❤️ by the LeetcodeSolve team.* -->
+*Built with ❤️ by the DevExplained team.* -->

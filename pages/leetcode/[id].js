@@ -413,7 +413,7 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
       name: "LeetcodeSolve",
       logo: {
         "@type": "ImageObject",
-        url: "https://leetcodesolve.vercel.app/logo.png",
+        url: "https://devexplained.vercel.app/logo.png",
         width: 150,
         height: 50,
       },
@@ -422,11 +422,11 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
     dateModified: new Date().toISOString(),
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": `https://leetcodesolve.vercel.app/leetcode/${frontMatter.id}`,
+      "@id": `https://devexplained.vercel.app/leetcode/${frontMatter.id}`,
     },
     image: [
-      "https://leetcodesolve.vercel.app/og-image.jpg",
-      `https://leetcodesolve.vercel.app/leetcode-${frontMatter.id}-solution.png`,
+      "https://devexplained.vercel.app/og-image.jpg",
+      `https://devexplained.vercel.app/leetcode-${frontMatter.id}-solution.png`,
     ],
     breadcrumb: {
       "@type": "BreadcrumbList",
@@ -435,19 +435,19 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
           "@type": "ListItem",
           position: 1,
           name: "Home",
-          item: "https://leetcodesolve.vercel.app/",
+          item: "https://devexplained.vercel.app/",
         },
         {
           "@type": "ListItem",
           position: 2,
           name: "Leetcode Solutions",
-          item: "https://leetcodesolve.vercel.app/leetcode",
+          item: "https://devexplained.vercel.app/leetcode",
         },
         {
           "@type": "ListItem",
           position: 3,
           name: `${frontMatter.id}. ${frontMatter.title}`,
-          item: `https://leetcodesolve.vercel.app/leetcode/${frontMatter.id}`,
+          item: `https://devexplained.vercel.app/leetcode/${frontMatter.id}`,
         },
       ],
     },
@@ -478,8 +478,8 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
           content={`Solve Leetcode ${frontMatter.id}: ${frontMatter.title || "Untitled Problem"} with optimized Java, C++, and Python code, detailed explanations, and an interactive editor.`}
         />
         <meta property="og:type" content="article" />
-        <meta property="og:url" content={`https://leetcodesolve.vercel.app/leetcode/${frontMatter.id}`} />
-        <meta property="og:image" content={`https://leetcodesolve.vercel.app/leetcode-${frontMatter.id}-solution.png`} />
+        <meta property="og:url" content={`https://devexplained.vercel.app/leetcode/${frontMatter.id}`} />
+        <meta property="og:image" content={`https://devexplained.vercel.app/leetcode-${frontMatter.id}-solution.png`} />
         <meta property="og:image:alt" content={`Leetcode ${frontMatter.id}: ${frontMatter.title} solution preview`} />
         <meta property="og:site_name" content="LeetcodeSolve" />
         <meta name="twitter:card" content="summary_large_image" />
@@ -491,10 +491,10 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
           name="twitter:description"
           content={`Master Leetcode ${frontMatter.id}: ${frontMatter.title || "Untitled Problem"} with expert Java, C++, and Python solutions and interactive coding.`}
         />
-        <meta name="twitter:image" content={`https://leetcodesolve.vercel.app/leetcode-${frontMatter.id}-solution.png`} />
+        <meta name="twitter:image" content={`https://devexplained.vercel.app/leetcode-${frontMatter.id}-solution.png`} />
         <meta name="twitter:image:alt" content={`Leetcode ${frontMatter.id}: ${frontMatter.title} solution preview`} />
         <meta name="twitter:creator" content="@LeetcodeSolve" />
-        <link rel="canonical" href={`https://leetcodesolve.vercel.app/leetcode/${frontMatter.id}`} />
+        <link rel="canonical" href={`https://devexplained.vercel.app/leetcode/${frontMatter.id}`} />
         <link rel="icon" href="/favicon.ico" type="image/x-icon" />
         <link rel="sitemap" href="/sitemap.xml" />
         <meta name="format-detection" content="telephone=no" />

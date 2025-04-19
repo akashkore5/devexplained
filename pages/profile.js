@@ -425,7 +425,7 @@ export default function Profile({ totalLeetcodeQuestions, totalSystemDesignQuest
   }
 
   // Dynamic base URL for meta tags
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://leetcodesolve.vercel.app";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://devexplained.vercel.app";
 
   return (
     <Layout isLoggedIn={status === "authenticated"} userName={userName}>

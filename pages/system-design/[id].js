@@ -190,7 +190,7 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
       name: "LeetcodeSolve",
       logo: {
         "@type": "ImageObject",
-        url: "https://leetcodesolve.vercel.app/logo.png",
+        url: "https://devexplained.vercel.app/logo.png",
         width: 150,
         height: 50,
       },
@@ -199,11 +199,11 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
     dateModified: new Date().toISOString(),
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": `https://leetcodesolve.vercel.app/system-design/${id}`,
+      "@id": `https://devexplained.vercel.app/system-design/${id}`,
     },
     image: [
-      "https://leetcodesolve.vercel.app/og-image.jpg",
-      `https://leetcodesolve.vercel.app/system-design-${id}-guide.png`,
+      "https://devexplained.vercel.app/og-image.jpg",
+      `https://devexplained.vercel.app/system-design-${id}-guide.png`,
     ],
     breadcrumb: {
       "@type": "BreadcrumbList",
@@ -212,19 +212,19 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
           "@type": "ListItem",
           position: 1,
           name: "Home",
-          item: "https://leetcodesolve.vercel.app/",
+          item: "https://devexplained.vercel.app/",
         },
         {
           "@type": "ListItem",
           position: 2,
           name: "System Design",
-          item: "https://leetcodesolve.vercel.app/system-design",
+          item: "https://devexplained.vercel.app/system-design",
         },
         {
           "@type": "ListItem",
           position: 3,
           name: frontmatter.title,
-          item: `https://leetcodesolve.vercel.app/system-design/${id}`,
+          item: `https://devexplained.vercel.app/system-design/${id}`,
         },
       ],
     },
@@ -260,11 +260,11 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
         <meta property="og:type" content="article" />
         <meta
           property="og:url"
-          content={`https://leetcodesolve.vercel.app/system-design/${id}`}
+          content={`https://devexplained.vercel.app/system-design/${id}`}
         />
         <meta
           property="og:image"
-          content={`https://leetcodesolve.vercel.app/system-design-${id}-guide.png`}
+          content={`https://devexplained.vercel.app/system-design-${id}-guide.png`}
         />
         <meta
           property="og:image:alt"
@@ -282,7 +282,7 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
         />
         <meta
           name="twitter:image"
-          content={`https://leetcodesolve.vercel.app/system-design-${id}-guide.png`}
+          content={`https://devexplained.vercel.app/system-design-${id}-guide.png`}
         />
         <meta
           name="twitter:image:alt"
@@ -291,7 +291,7 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
         <meta name="twitter:creator" content="@LeetcodeSolve" />
         <link
           rel="canonical"
-          href={`https://leetcodesolve.vercel.app/system-design/${id}`}
+          href={`https://devexplained.vercel.app/system-design/${id}`}
         />
         <link rel="sitemap" href="/sitemap.xml" />
         <link rel="icon" href="/favicon.ico" type="image/x-icon" />

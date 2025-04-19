@@ -241,10 +241,10 @@ export default function Profile({ totalLeetcodeQuestions, totalSystemDesignQuest
           content="Track your coding and system design progress with LeetcodeSolve's personalized profile page."
         />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://leetcodesolve.vercel.app/profile" />
+        <meta property="og:url" content="https://devexplained.vercel.app/profile" />
         <meta
           property="og:image"
-          content="https://leetcodesolve.vercel.app/og-image.jpg"
+          content="https://devexplained.vercel.app/og-image.jpg"
         />
         <meta
           property="og:image:alt"
@@ -261,13 +261,13 @@ export default function Profile({ totalLeetcodeQuestions, totalSystemDesignQuest
         />
         <meta
           name="twitter:image"
-          content="https://leetcodesolve.vercel.app/twitter-image.jpg"
+          content="https://devexplained.vercel.app/twitter-image.jpg"
         />
         <meta
           name="twitter:image:alt"
           content="LeetcodeSolve user profile preview"
         />
-        <link rel="canonical" href="https://leetcodesolve.vercel.app/profile" />
+        <link rel="canonical" href="https://devexplained.vercel.app/profile" />
         <link rel="icon" href="/favicon.ico" type="image/x-icon" />
         <meta name="theme-color" content="#4f46e5" />
         <script
@@ -278,7 +278,7 @@ export default function Profile({ totalLeetcodeQuestions, totalSystemDesignQuest
                 "@context": "https://schema.org",
                 "@type": "ProfilePage",
                 name: "LeetcodeSolve User Profile",
-                url: "https://leetcodesolve.vercel.app/profile",
+                url: "https://devexplained.vercel.app/profile",
                 description: "View your progress on Leetcode problems and system design articles, including solved, tagged, and viewed items.",
                 publisher: {
                   "@type": "Organization",

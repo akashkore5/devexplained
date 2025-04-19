@@ -20,13 +20,15 @@ export default function LoginModal({ isOpen, onClose, initialMode = "signin", on
         newErrors.name = "Name must be 2–50 alphabetic characters";
       }
     }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = "Invalid email address";
+    if (mode !== "forgot") {
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        newErrors.email = "Invalid email address";
+      }
     }
-    if (mobile && !/^\+?[\d-]{7,15}$/.test(mobile)) {
+    if (mode === "register" && mobile && !/^\+?[\d-]{7,15}$/.test(mobile)) {
       newErrors.mobile = "Invalid mobile number (e.g., +1234567890 or 123-456-7890)";
     }
-    if (!password || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password)) {
+    if (mode !== "forgot" && (!password || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password))) {
       newErrors.password = "Password must be 8+ characters with uppercase, lowercase, number, and special character";
     }
     setErrors(newErrors);
@@ -52,6 +54,21 @@ export default function LoginModal({ isOpen, onClose, initialMode = "signin", on
         if (!response.ok) {
           throw new Error(data.message || "Registration failed");
         }
+      } else if (mode === "forgot") {
+        const response = await fetch("/api/auth/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to send reset email");
+        }
+        toast.success("Password reset email sent. Please check your inbox.");
+        setMode("signin");
+        setEmail("");
+        setIsLoading(false);
+        return;
       }
 
       const result = await signIn("credentials", {
@@ -90,8 +107,8 @@ export default function LoginModal({ isOpen, onClose, initialMode = "signin", on
     }
   };
 
-  const toggleMode = () => {
-    setMode(mode === "signin" ? "register" : "signin");
+  const toggleMode = (newMode) => {
+    setMode(newMode);
     setErrors({});
     setName("");
     setEmail("");
@@ -124,7 +141,7 @@ export default function LoginModal({ isOpen, onClose, initialMode = "signin", on
           <XMarkIcon className="w-6 h-6" />
         </button>
         <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-6 text-center">
-          {mode === "signin" ? "Sign In" : "Create Account"}
+          {mode === "signin" ? "Sign In" : mode === "register" ? "Create Account" : "Reset Password"}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-5">
           {mode === "register" && (
@@ -199,34 +216,36 @@ export default function LoginModal({ isOpen, onClose, initialMode = "signin", on
               )}
             </div>
           )}
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={`mt-1 px-4 py-2 w-full rounded-md border ${
-                errors.password ? "border-red-500" : "border-gray-300 dark:border-slate-600"
-              } dark:bg-slate-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors`}
-              placeholder="••••••••"
-              required
-              aria-label="Password"
-            />
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-500">{errors.password}</p>
-            )}
-          </div>
+          {mode !== "forgot" && (
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`mt-1 px-4 py-2 w-full rounded-md border ${
+                  errors.password ? "border-red-500" : "border-gray-300 dark:border-slate-600"
+                } dark:bg-slate-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors`}
+                placeholder="••••••••"
+                required
+                aria-label="Password"
+              />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+              )}
+            </div>
+          )}
           <button
             type="submit"
             disabled={isLoading}
             className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label={mode === "signin" ? "Sign in" : "Register"}
+            aria-label={mode === "signin" ? "Sign in" : mode === "register" ? "Register" : "Send Reset Email"}
           >
             {isLoading ? (
               <svg className="animate-spin h-5 w-5 mx-auto text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -235,41 +254,56 @@ export default function LoginModal({ isOpen, onClose, initialMode = "signin", on
               </svg>
             ) : mode === "signin" ? (
               "Sign In"
-            ) : (
+            ) : mode === "register" ? (
               "Register"
+            ) : (
+              "Send Reset Email"
             )}
           </button>
         </form>
-        <button
-          onClick={handleGoogleSignIn}
-          disabled={isLoading}
-          className="w-full mt-4 px-4 py-2 bg-white dark:bg-slate-700 text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-100 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-          aria-label="Sign in with Google"
-        >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
-            <path
-              fill="currentColor"
-              d="M12.24 10.44v2.98h5.92c-.24 1.62-.96 2.94-2.46 3.84v3.18h3.96c2.34-2.16 3.66-5.34 3.66-9.06 0-.96-.12-1.86-.3-2.76h-10.78z"
-            />
-            <path
-              fill="currentColor"
-              d="M12 24c-3.36 0-6.42-1.2-8.82-3.18l-3.96 3.18c2.88 2.76 6.84 4.5 11.78 4.5 3.48 0 6.78-1.2 9.06-3.24l-3.96-3.18c-1.14.78-2.52 1.2-4.08 1.2z"
-            />
-            <path
-              fill="currentColor"
-              d="M12 4.8c1.86 0 3.54.66 4.86 1.74l2.88-2.88C17.34 1.62 14.46.6 12 .6 7.08.6 3.12 2.34.24 5.1l3.96 3.18C5.58 6.24 8.64 4.8 12 4.8z"
-            />
-            <path
-              fill="currentColor"
-              d="M3.18 12.66c-.18-.66-.3-1.38-.3-2.1s.12-1.44.3-2.1L.24 5.1C-.24 6.66 0 8.34 0 10.56s-.24 3.9.24 5.46l3.96-3.18z"
-            />
-          </svg>
-          <span>{isLoading ? "Processing..." : "Sign in with Google"}</span>
-        </button>
-        <p className="mt-6 text-sm text-gray-600 dark:text-gray-300 text-center">
-          {mode === "signin" ? "Don't have an account?" : "Already have an account?"}
+        {mode === "signin" && (
+          <p className="mt-4 text-sm text-gray-600 dark:text-gray-300 text-center">
+            <button
+              onClick={() => toggleMode("forgot")}
+              className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+              aria-label="Forgot password"
+            >
+              Forgot Password?
+            </button>
+          </p>
+        )}
+        {mode !== "forgot" && (
           <button
-            onClick={toggleMode}
+            onClick={handleGoogleSignIn}
+            disabled={isLoading}
+            className="w-full mt-4 px-4 py-2 bg-white dark:bg-slate-700 text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-100 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            aria-label="Sign in with Google"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path
+                fill="currentColor"
+                d="M12.24 10.44v2.98h5.92c-.24 1.62-.96 2.94-2.46 3.84v3.18h3.96c2.34-2.16 3.66-5.34 3.66-9.06 0-.96-.12-1.86-.3-2.76h-10.78z"
+              />
+              <path
+                fill="currentColor"
+                d="M12 24c-3.36 0-6.42-1.2-8.82-3.18l-3.96 3.18c2.88 2.76 6.84 4.5 11.78 4.5 3.48 0 6.78-1.2 9.06-3.24l-3.96-3.18c-1.14.78-2.52 1.2-4.08 1.2z"
+              />
+              <path
+                fill="currentColor"
+                d="M12 4.8c1.86 0 3.54.66 4.86 1.74l2.88-2.88C17.34 1.62 14.46.6 12 .6 7.08.6 3.12 2.34.24 5.1l3.96 3.18C5.58 6.24 8.64 4.8 12 4.8z"
+              />
+              <path
+                fill="currentColor"
+                d="M3.18 12.66c-.18-.66-.3-1.38-.3-2.1s.12-1.44.3-2.1L.24 5.1C-.24 6.66 0 8.34 0 10.56s-.24 3.9.24 5.46l3.96-3.18z"
+              />
+            </svg>
+            <span>{isLoading ? "Processing..." : "Sign in with Google"}</span>
+          </button>
+        )}
+        <p className="mt-6 text-sm text-gray-600 dark:text-gray-300 text-center">
+          {mode === "signin" ? "Don't have an account?" : mode === "register" ? "Already have an account?" : "Back to sign in?"}
+          <button
+            onClick={() => toggleMode(mode === "signin" ? "register" : "signin")}
             className="ml-1 text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
             aria-label={mode === "signin" ? "Switch to register" : "Switch to sign in"}
           >

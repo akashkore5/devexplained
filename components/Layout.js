@@ -2,26 +2,40 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Head from "next/head";
 import { motion, AnimatePresence } from "framer-motion";
-import { SunIcon, MoonIcon, Bars3Icon, XMarkIcon, ArrowRightOnRectangleIcon, UserIcon, UserPlusIcon } from "@heroicons/react/24/solid";
+import {
+  SunIcon,
+  MoonIcon,
+  Bars3Icon,
+  XMarkIcon,
+  UserIcon,
+  UserPlusIcon,
+  HomeIcon,
+  CodeBracketIcon,
+  RocketLaunchIcon,
+  ArrowRightOnRectangleIcon,
+} from "@heroicons/react/24/solid";
 import DOMPurify from "isomorphic-dompurify";
 import { toast } from "react-hot-toast";
 import LoginModal from "./LoginModal";
+import ProfileModal from "./ProfileModal";
 import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/router";
 
 export default function Layout({
   children,
-  title = "LeetcodeSolve - Coding & System Design Prep",
-  description = "Prepare for technical interviews with Leetcode solutions, system design tutorials, and coding challenges.",
+  title = "DevExplained - Coding & System Design Prep",
+  description = "Master coding interviews with expertly crafted Leetcode solutions, system design guides, and programming challenges.",
   isLoginModalOpen: externalIsLoginModalOpen,
   setIsLoginModalOpen: externalSetIsLoginModalOpen,
 }) {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [theme, setTheme] = useState("light");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [internalIsLoginModalOpen, setInternalIsLoginModalOpen] = useState(false);
   const [initialModalMode, setInitialModalMode] = useState("signin");
   const [isThemeLoading, setIsThemeLoading] = useState(false);
-  const [isLogoutLoading, setIsLogoutLoading] = useState(false);
 
   // Use external modal state if provided, else internal
   const isLoginModalOpen = externalIsLoginModalOpen !== undefined ? externalIsLoginModalOpen : internalIsLoginModalOpen;
@@ -49,21 +63,21 @@ export default function Layout({
     setTimeout(() => setIsThemeLoading(false), 300);
   }, [theme]);
 
-  const handleLogout = useCallback(() => {
-    setIsLogoutLoading(true);
-    signOut({ callbackUrl: "/" });
-    toast.success("Logged out successfully");
-    setTimeout(() => setIsLogoutLoading(false), 300);
-  }, []);
-
   const openModal = useCallback((mode) => {
     setInitialModalMode(mode);
     setIsLoginModalOpen(true);
     setIsMenuOpen(false);
+    setIsProfileDropdownOpen(false);
   }, [setIsLoginModalOpen]);
 
   const toggleMenu = useCallback(() => {
     setIsMenuOpen((prev) => !prev);
+    setIsProfileDropdownOpen(false);
+  }, []);
+
+  const toggleProfileDropdown = useCallback(() => {
+    setIsProfileDropdownOpen((prev) => !prev);
+    setIsMenuOpen(false);
   }, []);
 
   const menuVariants = {
@@ -78,22 +92,23 @@ export default function Layout({
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="robots" content="index, follow" />
         <meta name="keywords" content="leetcode, system design, coding, algorithms, interview prep, programming" />
-        <meta name="author" content="LeetcodeSolve Team" />
+        <meta name="author" content="DevExplained Team" />
         <meta name="description" content={description} />
-        <meta property="og:site_name" content="LeetcodeSolve" />
+        <meta property="og:site_name" content="DevExplained" />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://leetcodesolve.vercel.app" />
+        <meta property="og:url" content="https://devexplained.vercel.app" />
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
-        <meta property="og:image" content="https://leetcodesolve.vercel.app/og-image.jpg" />
+        <meta property="og:image" content="https://devexplained.vercel.app/og-image.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
-        <meta name="twitter:image" content="https://leetcodesolve.vercel.app/twitter-image.jpg" />
+        <meta name="twitter:image" content="https://devexplained.vercel.app/twitter-image.jpg" />
         <title>{title}</title>
-        <link rel="canonical" href="https://leetcodesolve.vercel.app" />
+        <link rel="canonical" href="https://devexplained.vercel.app" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="manifest" href="/site.webmanifest" />
+        <meta name="theme-color" content="#4f46e5" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -101,16 +116,16 @@ export default function Layout({
               JSON.stringify({
                 "@context": "https://schema.org",
                 "@type": "WebSite",
-                "name": "LeetcodeSolve",
-                "url": "https://leetcodesolve.vercel.app",
+                "name": "DevExplained",
+                "url": "https://devexplained.vercel.app",
                 "description": description,
                 "publisher": {
                   "@type": "Organization",
-                  "name": "LeetcodeSolve Team",
+                  "name": "DevExplained Team",
                 },
                 "potentialAction": {
                   "@type": "SearchAction",
-                  "target": "https://leetcodesolve.vercel.app/search?q={search_term_string}",
+                  "target": "https://devexplained.vercel.app/search?q={search_term_string}",
                   "query-input": "required name=search_term_string",
                 },
               })
@@ -119,55 +134,48 @@ export default function Layout({
         />
       </Head>
 
-      <header className="bg-white/70 dark:bg-slate-900/70 shadow-xl p-4 sticky top-0 z-50 backdrop-blur-lg border-b border-gray-200/50 dark:border-slate-700/50">
+      <header className="bg-white/90 dark:bg-slate-900/90 shadow-xl p-4 sticky top-0 z-50 backdrop-blur-lg border-b border-gray-200/50 dark:border-slate-700/50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <Link href="/" className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 tracking-tight hover:scale-105 transition-transform duration-200">
-            LeetcodeSolve
+          <Link
+            href="/"
+            className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 tracking-tight hover:scale-105 transition-transform duration-200"
+            aria-label="DevExplained Home"
+          >
+            DevExplained
           </Link>
           <nav role="navigation" aria-label="Main navigation" className="hidden md:flex items-center space-x-6">
             <Link
               href="/"
               className="text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
-              aria-current={children.props?.pathname === "/" ? "page" : undefined}
+              aria-current={router.pathname === "/" ? "page" : undefined}
             >
               Home
             </Link>
             <Link
               href="/leetcode"
               className="text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
-              aria-current={children.props?.pathname === "/leetcode" ? "page" : undefined}
+              aria-current={router.pathname === "/leetcode" ? "page" : undefined}
             >
               Leetcode
             </Link>
             <Link
               href="/system-design"
               className="text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
-              aria-current={children.props?.pathname === "/system-design" ? "page" : undefined}
+              aria-current={router.pathname === "/system-design" ? "page" : undefined}
             >
               System Design
             </Link>
             {status === "authenticated" ? (
-              <>
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 truncate max-w-[150px]">
-                  {session?.user.name || session?.user.email}
+              <button
+                onClick={() => setIsProfileDropdownOpen(true)}
+                className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
+                aria-label={`Open profile for ${session?.user?.name || session?.user?.email}`}
+              >
+                <UserIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                <span className="truncate max-w-[120px]">
+                  {session?.user?.name || session?.user?.email?.split("@")[0] || "User"}
                 </span>
-                <Link
-                  href="/profile"
-                  className="text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
-                  aria-current={children.props?.pathname === "/profile" ? "page" : undefined}
-                >
-                  Profile
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  disabled={isLogoutLoading}
-                  className="flex items-center space-x-1 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 disabled:opacity-50"
-                  aria-label="Log out"
-                >
-                  <ArrowRightOnRectangleIcon className="w-4 h-4" />
-                  <span>{isLogoutLoading ? "Logging out..." : "Logout"}</span>
-                </button>
-              </>
+              </button>
             ) : (
               <>
                 <button
@@ -227,53 +235,53 @@ export default function Layout({
             >
               <Link
                 href="/"
-                className="text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
+                className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
                 onClick={toggleMenu}
-                aria-current={children.props?.pathname === "/" ? "page" : undefined}
+                aria-current={router.pathname === "/" ? "page" : undefined}
               >
-                Home
+                <HomeIcon className="w-5 h-5" />
+                <span>Home</span>
               </Link>
               <Link
                 href="/leetcode"
-                className="text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
+                className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
                 onClick={toggleMenu}
-                aria-current={children.props?.pathname === "/leetcode" ? "page" : undefined}
+                aria-current={router.pathname === "/leetcode" ? "page" : undefined}
               >
-                Leetcode
+                <CodeBracketIcon className="w-5 h-5" />
+                <span>Leetcode</span>
               </Link>
               <Link
                 href="/system-design"
-                className="text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
+                className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
                 onClick={toggleMenu}
-                aria-current={children.props?.pathname === "/system-design" ? "page" : undefined}
+                aria-current={router.pathname === "/system-design" ? "page" : undefined}
               >
-                System Design
+                <RocketLaunchIcon className="w-5 h-5" />
+                <span>System Design</span>
               </Link>
               {status === "authenticated" ? (
                 <>
-                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 truncate max-w-[200px]">
-                    {session?.user.name || session?.user.email}
-                  </span>
-                  <Link
-                    href="/profile"
-                    className="text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
-                    onClick={toggleMenu}
-                    aria-current={children.props?.pathname === "/profile" ? "page" : undefined}
-                  >
-                    Profile
-                  </Link>
                   <button
-                    onClick={() => {
-                      handleLogout();
-                      toggleMenu();
-                    }}
-                    disabled={isLogoutLoading}
-                    className="flex items-center space-x-1 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 disabled:opacity-50"
-                    aria-label="Log out"
+                    onClick={toggleProfileDropdown}
+                    className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
+                    aria-label={`Toggle profile options for ${session?.user?.name || session?.user?.email}`}
+                    aria-expanded={isProfileDropdownOpen}
                   >
-                    <ArrowRightOnRectangleIcon className="w-4 h-4" />
-                    <span>{isLogoutLoading ? "Logging out..." : "Logout"}</span>
+                    <UserIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    <span className="truncate max-w-[200px]">
+                      {session?.user?.name || session?.user?.email?.split("@")[0] || "User"}
+                    </span>
                   </button>
+                  <AnimatePresence>
+                    {isProfileDropdownOpen && (
+                      <ProfileModal
+                        isOpen={isProfileDropdownOpen}
+                        onClose={() => setIsProfileDropdownOpen(false)}
+                        isMobile={true}
+                      />
+                    )}
+                  </AnimatePresence>
                 </>
               ) : (
                 <>
@@ -282,10 +290,10 @@ export default function Layout({
                       openModal("signin");
                       toggleMenu();
                     }}
-                    className="flex items-center space-x-1 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
+                    className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
                     aria-label="Sign in"
                   >
-                    <UserIcon className="w-4 h-4" />
+                    <UserIcon className="w-5 h-5" />
                     <span>Sign In</span>
                   </button>
                   <button
@@ -293,10 +301,10 @@ export default function Layout({
                       openModal("register");
                       toggleMenu();
                     }}
-                    className="flex items-center space-x-1 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
+                    className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200"
                     aria-label="Register"
                   >
-                    <UserPlusIcon className="w-4 h-4" />
+                    <UserPlusIcon className="w-5 h-5" />
                     <span>Register</span>
                   </button>
                 </>
@@ -311,9 +319,9 @@ export default function Layout({
                 aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
               >
                 {theme === "light" ? (
-                  <MoonIcon className="w-4 h-4" />
+                  <MoonIcon className="w-5 h-5" />
                 ) : (
-                  <SunIcon className="w-4 h-4 text-yellow-400" />
+                  <SunIcon className="w-5 h-5 text-yellow-400" />
                 )}
                 <span>{theme === "light" ? "Dark Mode" : "Light Mode"}</span>
               </button>
@@ -330,7 +338,7 @@ export default function Layout({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div>
-              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">LeetcodeSolve</h3>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">DevExplained</h3>
               <p className="text-sm leading-relaxed">
                 Master coding interviews with expertly crafted solutions and system design guides.
               </p>
@@ -365,7 +373,7 @@ export default function Layout({
               <ul className="space-y-3">
                 <li>
                   <a
-                    href="https://github.com/leetcodesolve"
+                    href="https://github.com/devexplained"
                     className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 text-sm"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -376,7 +384,7 @@ export default function Layout({
                 </li>
                 <li>
                   <a
-                    href="https://twitter.com/leetcodesolve"
+                    href="https://twitter.com/devexplained"
                     className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 text-sm"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -387,7 +395,7 @@ export default function Layout({
                 </li>
                 <li>
                   <a
-                    href="https://linkedin.com/company/leetcodesolve"
+                    href="https://linkedin.com/company/devexplained"
                     className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 text-sm"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -399,7 +407,7 @@ export default function Layout({
               </ul>
             </div>
           </div>
-          <p className="mt-12 text-sm font-medium">© {new Date().getFullYear()} LeetcodeSolve. All rights reserved.</p>
+          <p className="mt-12 text-sm font-medium">© {new Date().getFullYear()} DevExplained. All rights reserved.</p>
         </div>
       </footer>
 
@@ -422,6 +430,13 @@ export default function Layout({
               }}
             />
           </motion.div>
+        )}
+        {status === "authenticated" && !isMenuOpen && (
+          <ProfileModal
+            isOpen={isProfileDropdownOpen}
+            onClose={() => setIsProfileDropdownOpen(false)}
+            isMobile={false}
+          />
         )}
       </AnimatePresence>
     </div>

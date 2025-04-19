@@ -426,7 +426,7 @@ export default function Leetcode({ initialViewMode = "table" }) {
         />
       </Head>
       <Toaster />
-      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="flex-grow max-w-7xl mx-auto px-2 sm:px-6 lg:px-0 py-0">
         {/* Filters Section */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -706,11 +706,10 @@ export default function Leetcode({ initialViewMode = "table" }) {
                               e.stopPropagation();
                               handleMarkSolved(id, solvedProblems.includes(Number(id)));
                             }}
-                            className={`rounded-full p-1 ${
-                              solvedProblems.includes(Number(id))
+                            className={`rounded-full p-1 ${solvedProblems.includes(Number(id))
                                 ? "bg-green-500 text-white"
                                 : "bg-gray-200 text-gray-500"
-                            }`}
+                              }`}
                             aria-label={
                               solvedProblems.includes(Number(id))
                                 ? "Unmark as solved"
@@ -736,8 +735,8 @@ export default function Leetcode({ initialViewMode = "table" }) {
                                   diff === "Easy"
                                     ? "#34D399"
                                     : diff === "Medium"
-                                    ? "#FBBF24"
-                                    : "#EF4444",
+                                      ? "#FBBF24"
+                                      : "#EF4444",
                               }}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -763,14 +762,16 @@ export default function Leetcode({ initialViewMode = "table" }) {
                               {t}
                             </Link>
                           ))}
-                        </div>
-                        <div className="flex gap-3 mt-4">
+                        </div><div className="flex gap-3 mt-4">
                           <motion.button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleMarkSolved(id, solvedProblems.includes(Number(id)));
                             }}
-                            className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-800 dark:to-indigo-900 text-white rounded-lg shadow-md hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className={`flex items-center px-4 py-2 rounded-lg shadow-md text-white transition-transform duration-200 ${solvedProblems.includes(Number(id))
+                                ? "bg-gradient-to-r from-green-600 to-green-700 dark:from-green-800 dark:to-green-900"
+                                : "bg-gradient-to-r from-gray-600 to-gray-700 to-gray-700 dark:from-gray-800 dark:to-gray-900"
+                              }`}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             aria-label={
@@ -780,14 +781,17 @@ export default function Leetcode({ initialViewMode = "table" }) {
                             }
                           >
                             <CheckCircleIcon className="w-5 h-5 mr-2" />
-                            {solvedProblems.includes(Number(id)) ? "Unmark Solved" : "Mark as Solved"}
+                            Solved
                           </motion.button>
                           <motion.button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleTagProblem(id, taggedProblems.includes(Number(id)));
                             }}
-                            className="flex items-center px-4 py-2 bg-gradient-to-r from-pink-600 to-pink-700 dark:from-pink-800 dark:to-pink-900 text-white rounded-lg shadow-md hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                            className={`flex items-center px-4 py-2 rounded-lg shadow-md text-white transition-transform duration-200 ${taggedProblems.includes(Number(id))
+                                ? "bg-gradient-to-r from-pink-600 to-pink-700 dark:from-pink-800 dark:to-pink-900"
+                                : "bg-gradient-to-r from-gray-600 to-gray-700 dark:from-gray-800 dark:to-gray-900"
+                              }`}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             aria-label={
@@ -795,7 +799,7 @@ export default function Leetcode({ initialViewMode = "table" }) {
                             }
                           >
                             <HeartIcon className="w-5 h-5 mr-2" />
-                            {taggedProblems.includes(Number(id)) ? "Untag" : "Tag"}
+                            Tag
                           </motion.button>
                         </div>
                       </div>
@@ -903,11 +907,10 @@ export default function Leetcode({ initialViewMode = "table" }) {
                                     solvedProblems.includes(Number(problem.id))
                                   )
                                 }
-                                className={`rounded-full p-1 ${
-                                  solvedProblems.includes(Number(problem.id))
+                                className={`rounded-full p-1 ${solvedProblems.includes(Number(problem.id))
                                     ? "bg-green-500 text-white"
                                     : "bg-gray-200 text-gray-500"
-                                }`}
+                                  }`}
                                 aria-label={
                                   solvedProblems.includes(Number(problem.id))
                                     ? "Unmark as solved"
@@ -924,13 +927,14 @@ export default function Leetcode({ initialViewMode = "table" }) {
                               >
                                 {problem.id}. {problem.title}
                               </Link>
-                            </td>
-                            <td className="px-4 py-4">
+                            </td><td className="px-4 py-4">
                               <div className="flex flex-wrap gap-2 sm:gap-1">
-                                <Link
-                                  href={`/leetcode?difficulty=${encodeURIComponent(
-                                    problem.difficulty
-                                  )}`}
+                                <button
+                                  onClick={() => {
+                                    setDifficulty(problem.difficulty);
+                                    setPage(1);
+                                    updateQuery({ ...router.query, difficulty: problem.difficulty });
+                                  }}
                                   className={`inline-block text-center px-1.5 py-1 rounded-lg text-xs font-medium border transition-all duration-200 truncate max-w-[80px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${getDifficultyColor(
                                     problem.difficulty
                                   )}`}
@@ -938,7 +942,7 @@ export default function Leetcode({ initialViewMode = "table" }) {
                                   aria-label={`Filter by ${problem.difficulty} difficulty`}
                                 >
                                   {problem.difficulty}
-                                </Link>
+                                </button>
                               </div>
                             </td>
                             <td className="px-4 py-4 min-w-[150px] max-w-[250px]">
@@ -950,9 +954,8 @@ export default function Leetcode({ initialViewMode = "table" }) {
                                   <Link
                                     key={t}
                                     href={`/leetcode?tag=${encodeURIComponent(t)}`}
-                                    className={`inline-block text-center px-1 py-0.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600 border border-gray-200 dark:border-gray-600 transition-all duration-200 truncate max-w-[100px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${
-                                      t.length > 15 ? "text-[10px]" : ""
-                                    }`}
+                                    className={`inline-block text-center px-1 py-0.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600 border border-gray-200 dark:border-gray-600 transition-all duration-200 truncate max-w-[100px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${t.length > 15 ? "text-[10px]" : ""
+                                      }`}
                                     onClick={() => setPage(1)}
                                     title={t}
                                     aria-label={`Filter by ${t} tag`}
@@ -974,11 +977,10 @@ export default function Leetcode({ initialViewMode = "table" }) {
                                     taggedProblems.includes(Number(problem.id))
                                   )
                                 }
-                                className={`p-1 ${
-                                  taggedProblems.includes(Number(problem.id))
-                                    ? "text-green-500"
+                                className={`p-1 ${taggedProblems.includes(Number(problem.id))
+                                    ? "text-pink-500"
                                     : "text-gray-400"
-                                }`}
+                                  }`}
                                 aria-label={
                                   taggedProblems.includes(Number(problem.id))
                                     ? "Untag problem"
@@ -1079,11 +1081,10 @@ export default function Leetcode({ initialViewMode = "table" }) {
                     <button
                       key={p}
                       onClick={() => handlePageChange(p)}
-                      className={`px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium transition-all duration-200 shadow-sm ${
-                        p === page
+                      className={`px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium transition-all duration-200 shadow-sm ${p === page
                           ? "bg-indigo-600 text-white border-indigo-600"
                           : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
-                      }`}
+                        }`}
                     >
                       {p}
                     </button>

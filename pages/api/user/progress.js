@@ -28,9 +28,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Invalid type or action' });
     }
 
-    // Define the field to update
-    const updateField = `${type}.${action}`;
-
     // Initialize user document if it doesn't exist
     await db.collection('progress').updateOne(
       { email: userEmail },
@@ -43,6 +40,29 @@ export default async function handler(req, res) {
       },
       { upsert: true }
     );
+
+    if (action === "all") {
+      // Check all progress types for the given ID
+      const userProgress = await db.collection('progress').findOne({ email: userEmail });
+      const progress = userProgress?.leetcode || { viewed: [], solved: [], tagged: [] };
+      return res.status(200).json({
+        viewed: progress.viewed.includes(parseInt(id)),
+        solved: progress.solved.includes(parseInt(id)),
+        tagged: progress.tagged.includes(parseInt(id)),
+      });
+    }
+
+    // Define the field to update
+    const updateField = `${type}.${action}`;
+
+    // Check if ID exists
+    if (!remove) {
+      const userProgress = await db.collection('progress').findOne({ email: userEmail });
+      const progress = userProgress?.[type]?.[action] || [];
+      if (progress.includes(parseInt(id))) {
+        return res.status(200).json({ message: 'ID already exists' });
+      }
+    }
 
     // Update the specific progress field
     const update = remove

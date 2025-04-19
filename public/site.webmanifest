@@ -1,0 +1,49 @@
+{
+    "name": "DevExplained",
+    "short_name": "DevEx",
+    "description": "Master coding interviews with expertly crafted Leetcode solutions, system design guides, and programming challenges.",
+    "start_url": "/",
+    "display": "standalone",
+    "scope": "/",
+    "theme_color": "#4f46e5",
+    "background_color": "#1e293b",
+    "orientation": "portrait-primary",
+    "icons": [
+      {
+        "src": "/icon-192x192.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "any maskable"
+      },
+      {
+        "src": "/icon-512x512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "any maskable"
+      }
+    ],
+    "screenshots": [
+      {
+        "src": "/screenshot-desktop.png",
+        "sizes": "1280x720",
+        "type": "image/png",
+        "label": "DevExplained Dashboard"
+      },
+      {
+        "src": "/screenshot-mobile.png",
+        "sizes": "750x1334",
+        "type": "image/png",
+        "label": "DevExplained Mobile View"
+      }
+    ],
+    "related_applications": [
+      {
+        "platform": "play",
+        "url": "https://play.google.com/store/apps/details?id=com.devexplained.app",
+        "id": "com.devexplained.app"
+      }
+    ],
+    "prefer_related_applications": false,
+    "lang": "en-US",
+    "dir": "ltr"
+  }

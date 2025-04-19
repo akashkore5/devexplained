@@ -16,6 +16,10 @@ import Head from "next/head";
 import DOMPurify from "dompurify";
 import { useSession } from "next-auth/react";
 import { CheckCircleIcon, HeartIcon } from "@heroicons/react/24/solid";
+import dynamic from "next/dynamic";
+
+// Monaco Editor with SSR disabled
+const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
 // Configure DOMPurify for server-side rendering
 let purify;
@@ -108,6 +112,11 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
   const [copyIcon, setCopyIcon] = useState("copy");
   const [isSolving, setIsSolving] = useState(false);
   const [isTagging, setIsTagging] = useState(false);
+  const [isSolved, setIsSolved] = useState(false);
+  const [isTagged, setIsTagged] = useState(false);
+  const [editorCode, setEditorCode] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [executionResult, setExecutionResult] = useState(null);
   const codeRef = useRef(null);
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -123,10 +132,36 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
     return purify.sanitize(contentHtml, { USE_PROFILES: { html: true } });
   }, [contentHtml]);
 
+  // Check initial progress status
+  useEffect(() => {
+    if (status !== "authenticated") return;
+
+    const checkProgress = async () => {
+      try {
+        const response = await fetch("/api/user/progress/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "leetcode", action: "all", id: currentId }),
+        });
+        const data = await response.json();
+        setIsSolved(data.solved || false);
+        setIsTagged(data.tagged || false);
+      } catch (error) {
+        console.error("Error checking progress:", error);
+      }
+    };
+
+    checkProgress();
+  }, [currentId, status]);
+
   // Highlight code
   useEffect(() => {
     if (typeof window !== "undefined" && codeRef.current) {
       try {
+        if (!codeBlocks[activeTab]) {
+          console.warn(`No code available for language: ${activeTab}`);
+          return;
+        }
         if (codeRef.current.dataset.highlighted) {
           delete codeRef.current.dataset.highlighted;
         }
@@ -136,24 +171,45 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
         toast.error("Failed to highlight code");
       }
     }
-  }, [activeTab]);
+  }, [activeTab, codeBlocks]);
 
-  // Mark problem as viewed (only for logged-in users)
+  // Fetch main method code for editor
+  useEffect(() => {
+    const fetchMainCode = async () => {
+      try {
+        const response = await fetch(`/api/main-code?lang=${activeTab}&id=${currentId}`);
+        const data = await response.json();
+        if (data.code) {
+          // Remove triple backticks and surrounding newlines
+          const cleanedCode = data.code.replace(/^```[\s\S]*?\n([\s\S]*)\n```$/, '$1').trim();
+          setEditorCode(cleanedCode);
+        } else {
+          setEditorCode(codeBlocks[activeTab] || "");
+        }
+      } catch (error) {
+        console.error("Error fetching main code:", error);
+        toast.error("Failed to load main code");
+        setEditorCode(codeBlocks[activeTab] || "");
+      }
+    };
+
+    fetchMainCode();
+  }, [activeTab, currentId, codeBlocks]);
+
+  // Mark problem as viewed
   useEffect(() => {
     if (status !== "authenticated") return;
 
     const checkAndMarkViewed = async () => {
       try {
-        // Check if already viewed
         const response = await fetch("/api/user/progress/check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ type: "leetcode", action: "viewed", id: currentId }),
         });
         const data = await response.json();
-        if (data.isPresent) return; // Skip if already viewed
+        if (data.isPresent) return;
 
-        // Mark as viewed
         const markResponse = await fetch("/api/user/progress", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -185,7 +241,7 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
     }
   }, []);
 
-  const handleMarkSolved = useCallback(async () => {
+  const handleToggleSolved = useCallback(async () => {
     if (status !== "authenticated") {
       setIsLoginModalOpen(true);
       return;
@@ -196,22 +252,28 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
       const response = await fetch("/api/user/progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "leetcode", action: "solved", id: currentId }),
+        body: JSON.stringify({
+          type: "leetcode",
+          action: "solved",
+          id: currentId,
+          remove: isSolved ? true : false,
+        }),
       });
       if (response.ok) {
-        toast.success("Problem marked as solved!");
+        setIsSolved(!isSolved);
+        toast.success(isSolved ? "Problem unmarked as solved" : "Problem marked as solved!");
       } else {
-        toast.error("Failed to mark as solved.");
+        toast.error("Failed to update solved status");
       }
     } catch (error) {
-      console.error("Error marking solved:", error);
-      toast.error("An error occurred.");
+      console.error("Error updating solved status:", error);
+      toast.error("An error occurred");
     } finally {
       setIsSolving(false);
     }
-  }, [currentId, status]);
+  }, [currentId, status, isSolved]);
 
-  const handleLikeTag = useCallback(async () => {
+  const handleToggleTagged = useCallback(async () => {
     if (status !== "authenticated") {
       setIsLoginModalOpen(true);
       return;
@@ -222,20 +284,98 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
       const response = await fetch("/api/user/progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "leetcode", action: "tagged", id: currentId }),
+        body: JSON.stringify({
+          type: "leetcode",
+          action: "tagged",
+          id: currentId,
+          remove: isTagged ? true : false,
+        }),
       });
       if (response.ok) {
-        toast.success("Problem tagged!");
+        setIsTagged(!isTagged);
+        toast.success(isTagged ? "Problem untagged" : "Problem tagged!");
       } else {
-        toast.error("Failed to tag problem.");
+        toast.error("Failed to update tag status");
       }
     } catch (error) {
-      console.error("Error tagging problem:", error);
-      toast.error("An error occurred.");
+      console.error("Error updating tag status:", error);
+      toast.error("An error occurred");
     } finally {
       setIsTagging(false);
     }
-  }, [currentId, status]);
+  }, [currentId, status, isTagged]);
+
+  const handleRunCode = useCallback(async () => {
+    if (!editorCode) {
+      toast.error("No code to execute");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setExecutionResult(null);
+
+    try {
+      const response = await fetch("https://judge0-ce.p.rapidapi.com/submissions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
+          "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
+        },
+        body: JSON.stringify({
+          source_code: editorCode,
+          language_id: activeTab === "java" ? 62 : activeTab === "cpp" ? 54 : 71,
+          stdin: "",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Judge0 submission failed: ${response.statusText}`);
+      }
+
+      const { token } = await response.json();
+
+      // Poll for results
+      let result;
+      for (let i = 0; i < 10; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const statusResponse = await fetch(
+          `https://judge0-ce.p.rapidapi.com/submissions/${token}?base64_encoded=true`,
+          {
+            headers: {
+              "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
+              "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
+            },
+          }
+        );
+        result = await statusResponse.json();
+        if (result.status.id > 2) break;
+      }
+
+      // Parse error messages for line numbers (if available)
+      let errorDetails = null;
+      if (result.stderr) {
+        const stderr = atob(result.stderr);
+        const lineMatch = stderr.match(/:(\d+):/);
+        errorDetails = {
+          message: stderr,
+          line: lineMatch ? parseInt(lineMatch[1]) : null,
+        };
+      }
+
+      setExecutionResult({
+        stdout: result.stdout ? atob(result.stdout) : null,
+        stderr: errorDetails ? errorDetails.message : null,
+        line: errorDetails ? errorDetails.line : null,
+        status: result.status.description,
+      });
+    } catch (error) {
+      console.error("Error executing code:", error);
+      toast.error("Failed to execute code: " + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [editorCode, activeTab]);
 
   // Memoize difficulty styling
   const difficultyStyle = useMemo(() => {
@@ -257,16 +397,16 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
   };
 
-  // Structured data for SEO
+  // Enhanced Structured Data for SEO
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: `${frontMatter.id}. ${frontMatter.title || "Leetcode Solution"}`,
-    description: `Detailed solution for Leetcode problem ${frontMatter.title || "Untitled Problem"} with explanations and code in Java, C++, and Python.`,
-    keywords: `Leetcode, ${frontMatter.title}, coding, algorithms, ${frontMatter.difficulty || "programming"}, Java, C++, Python, coding interview`,
+    description: `Solve Leetcode problem ${frontMatter.id}: ${frontMatter.title || "Untitled Problem"} with optimized solutions in Java, C++, and Python. Includes detailed explanations, code editor, and execution results.`,
+    keywords: `Leetcode ${frontMatter.id}, ${frontMatter.title}, ${frontMatter.difficulty || "programming"} problem, coding solution, Java, C++, Python, algorithms, data structures, coding interview`,
     author: {
       "@type": "Organization",
-      name: "LeetcodeSolve Team",
+      name: "LeetcodeSolve",
     },
     publisher: {
       "@type": "Organization",
@@ -274,28 +414,58 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
       logo: {
         "@type": "ImageObject",
         url: "https://leetcodesolve.vercel.app/logo.png",
+        width: 150,
+        height: 50,
       },
     },
     datePublished: frontMatter.date || new Date().toISOString(),
+    dateModified: new Date().toISOString(),
     mainEntityOfPage: {
       "@type": "WebPage",
       "@id": `https://leetcodesolve.vercel.app/leetcode/${frontMatter.id}`,
     },
-    image: "https://leetcodesolve.vercel.app/og-image.jpg",
+    image: [
+      "https://leetcodesolve.vercel.app/og-image.jpg",
+      `https://leetcodesolve.vercel.app/leetcode-${frontMatter.id}-solution.png`,
+    ],
+    breadcrumb: {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Home",
+          item: "https://leetcodesolve.vercel.app/",
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Leetcode Solutions",
+          item: "https://leetcodesolve.vercel.app/leetcode",
+        },
+        {
+          "@type": "ListItem",
+          position: 3,
+          name: `${frontMatter.id}. ${frontMatter.title}`,
+          item: `https://leetcodesolve.vercel.app/leetcode/${frontMatter.id}`,
+        },
+      ],
+    },
   };
 
   return (
     <Layout
       title={`${frontMatter.id}. ${frontMatter.title || "Leetcode Solution"} - LeetcodeSolve`}
-      description={`Master the ${frontMatter.title || "Leetcode problem"} with detailed solutions in Java, C++, and Python.`}
+      description={`Solve Leetcode problem ${frontMatter.id}: ${frontMatter.title || "Untitled Problem"} with optimized Java, C++, and Python solutions, detailed explanations, and interactive code editor.`}
       isLoginModalOpen={isLoginModalOpen}
       setIsLoginModalOpen={setIsLoginModalOpen}
     >
       <Head>
         <meta
           name="keywords"
-          content={`Leetcode, ${frontMatter.title}, ${frontMatter.difficulty || "programming"}, Java, C++, Python, algorithms, data structures, coding interview, Leetcode solution`}
+          content={`Leetcode ${frontMatter.id}, ${frontMatter.title}, ${frontMatter.difficulty || "programming"} solution, Java, C++, Python, algorithms, data structures, coding interview, Leetcode problem, optimized code`}
         />
+        <meta name="description" content={`Master Leetcode problem ${frontMatter.id}: ${frontMatter.title || "Untitled Problem"} with step-by-step solutions in Java, C++, and Python, plus interactive code execution.`} />
         <meta name="author" content="LeetcodeSolve Team" />
         <meta name="robots" content="index, follow" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -305,12 +475,13 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
         />
         <meta
           property="og:description"
-          content={`Detailed solution for Leetcode problem ${frontMatter.title || "Untitled Problem"} with code in Java, C++, and Python, plus expert explanations.`}
+          content={`Solve Leetcode ${frontMatter.id}: ${frontMatter.title || "Untitled Problem"} with optimized Java, C++, and Python code, detailed explanations, and an interactive editor.`}
         />
         <meta property="og:type" content="article" />
         <meta property="og:url" content={`https://leetcodesolve.vercel.app/leetcode/${frontMatter.id}`} />
-        <meta property="og:image" content="https://leetcodesolve.vercel.app/og-image.jpg" />
-        <meta property="og:image:alt" content={`Leetcode ${frontMatter.title} solution preview`} />
+        <meta property="og:image" content={`https://leetcodesolve.vercel.app/leetcode-${frontMatter.id}-solution.png`} />
+        <meta property="og:image:alt" content={`Leetcode ${frontMatter.id}: ${frontMatter.title} solution preview`} />
+        <meta property="og:site_name" content="LeetcodeSolve" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta
           name="twitter:title"
@@ -318,19 +489,22 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
         />
         <meta
           name="twitter:description"
-          content={`Learn how to solve Leetcode's ${frontMatter.title || "problem"} with our expert solutions in Java, C++, and Python.`}
+          content={`Master Leetcode ${frontMatter.id}: ${frontMatter.title || "Untitled Problem"} with expert Java, C++, and Python solutions and interactive coding.`}
         />
-        <meta name="twitter:image" content="https://leetcodesolve.vercel.app/twitter-image.jpg" />
-        <meta name="twitter:image:alt" content={`Leetcode ${frontMatter.title} solution preview`} />
+        <meta name="twitter:image" content={`https://leetcodesolve.vercel.app/leetcode-${frontMatter.id}-solution.png`} />
+        <meta name="twitter:image:alt" content={`Leetcode ${frontMatter.id}: ${frontMatter.title} solution preview`} />
+        <meta name="twitter:creator" content="@LeetcodeSolve" />
         <link rel="canonical" href={`https://leetcodesolve.vercel.app/leetcode/${frontMatter.id}`} />
         <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+        <link rel="sitemap" href="/sitemap.xml" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="theme-color" content="#4f46e5" />
         <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="google-site-verification" content="YOUR_GOOGLE_VERIFICATION_CODE" />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Head>
       <Toaster />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-8">
         <motion.article
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -341,7 +515,7 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
             variants={sectionVariants}
             initial="hidden"
             animate="visible"
-            className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 sm:p-8 mb-8"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 sm:p-8 mb-6"
           >
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-6">
               {frontMatter.id}. {frontMatter.title || "Untitled Problem"}
@@ -365,26 +539,34 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
                 </Link>
               ))}
               <motion.button
-                onClick={handleMarkSolved}
+                onClick={handleToggleSolved}
                 disabled={isSolving}
-                className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-800 dark:to-indigo-900 text-white rounded-lg shadow-md hover:scale-105 disabled:opacity-50 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`flex items-center px-4 py-2 rounded-lg shadow-md transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                  isSolved
+                    ? "bg-gradient-to-r from-green-600 to-green-700 dark:from-green-800 dark:to-green-900 text-white"
+                    : "bg-gradient-to-r from-gray-600 to-gray-700 dark:from-gray-800 dark:to-gray-900 text-white"
+                } hover:scale-105 disabled:opacity-50`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                aria-label="Mark as solved"
+                aria-label={isSolved ? "Unmark as solved" : "Mark as solved"}
               >
                 <CheckCircleIcon className="w-5 h-5 mr-2" />
-                {isSolving ? "Marking..." : "Mark as Solved"}
+                {isSolving ? "Processing..." : "Solved"}
               </motion.button>
               <motion.button
-                onClick={handleLikeTag}
+                onClick={handleToggleTagged}
                 disabled={isTagging}
-                className="flex items-center px-4 py-2 bg-gradient-to-r from-pink-600 to-pink-700 dark:from-pink-800 dark:to-pink-900 text-white rounded-lg shadow-md hover:scale-105 disabled:opacity-50 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className={`flex items-center px-4 py-2 rounded-lg shadow-md transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-pink-500 ${
+                  isTagged
+                    ? "bg-gradient-to-r from-pink-600 to-pink-700 dark:from-pink-800 dark:to-pink-900 text-white"
+                    : "bg-gradient-to-r from-gray-600 to-gray-700 dark:from-gray-800 dark:to-gray-900 text-white"
+                } hover:scale-105 disabled:opacity-50`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                aria-label="Like or tag problem"
+                aria-label={isTagged ? "Untag problem" : "Tag problem"}
               >
                 <HeartIcon className="w-5 h-5 mr-2" />
-                {isTagging ? "Tagging..." : "Like/Tag"}
+                {isTagging ? "Processing..." : "Tag"}
               </motion.button>
             </div>
           </motion.header>
@@ -395,7 +577,7 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
             initial="hidden"
             animate="visible"
             transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 sm:p-8 mb-8"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 sm:p-8 mb-6"
           >
             <div
               className="prose prose-gray dark:prose-invert max-w-none text-gray-700 dark:text-gray-200"
@@ -420,7 +602,7 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
             initial="hidden"
             animate="visible"
             transition={{ delay: 0.4 }}
-            className="bg-white dark:bg-slate-800 rounded-xl shadow-lg"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-lg mb-6"
           >
             <nav className="border-b border-gray-200 dark:border-slate-700">
               <div className="flex" role="tablist" aria-label="Programming languages">
@@ -505,9 +687,104 @@ const ProblemPage = memo(function ProblemPage({ frontMatter, contentHtml, codeBl
             </div>
           </motion.section>
 
+          {/* Code Editor */}
+          <motion.section
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.5 }}
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 sm:p-8 mb-6"
+          >
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              Code Editor (Testing phase)
+            </h2>
+            <div className="mb-4 p-4 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-lg">
+              <h3 className="font-semibold mb-2">Improve Your Solution</h3>
+              <div className="text-sm">
+                <p className="mb-2">
+                  Use the editor below to refine the provided solution. Select a programming language and try the following:
+                </p>
+                <ul className="list-disc list-inside">
+                  <li>Add import statement if required.</li>
+                  <li>Optimize the code for better time or space complexity.</li>
+                  <li>Add test cases to validate edge cases and common scenarios.</li>
+                  <li>Handle error conditions or invalid inputs gracefully.</li>
+                  <li>Experiment with alternative approaches to deepen your understanding.</li>
+                </ul>
+                <p className="mt-2">
+                  Click "Run Code" to execute your solution and view the output. If errors occur, check the line numbers and debug accordingly. Resize the editor by dragging its bottom edge.
+                </p>
+              </div>
+            </div>
+            <nav className="border-b border-gray-200 dark:border-slate-700 mb-4">
+              <div className="flex" role="tablist" aria-label="Editor programming languages">
+                {["java", "cpp", "python"].map((lang) => (
+                  <button
+                    key={lang}
+                    role="tab"
+                    aria-selected={activeTab === lang}
+                    aria-controls={`editor-panel-${lang}`}
+                    id={`editor-tab-${lang}`}
+                    onClick={() => setActiveTab(lang)}
+                    className={`px-4 py-2 font-medium text-sm focus:outline-none transition-colors ${
+                      activeTab === lang
+                        ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-slate-700"
+                        : "text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    {lang.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </nav>
+            <MonacoEditor
+              height="400px"
+              minHeight="300px"
+              maxHeight="600px"
+              language={activeTab}
+              theme="vs-dark"
+              value={editorCode}
+              onChange={(value) => setEditorCode(value)}
+              options={{
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 14,
+                automaticLayout: true,
+                wordWrap: "on",
+                resize: "vertical",
+              }}
+            />
+            <div className="flex justify-end mt-4 gap-4">
+              <button
+                onClick={handleRunCode}
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-800 dark:to-blue-900 text-white rounded-lg shadow-md hover:scale-105 disabled:opacity-50 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {isSubmitting ? "Running..." : "Run Code"}
+              </button>
+            </div>
+            {executionResult && (
+              <div className="mt-4 p-4 bg-gray-100 dark:bg-slate-700 rounded-lg">
+                <h3 className="font-semibold mb-2">Execution Result:</h3>
+                <p>Status: {executionResult.status}</p>
+                {executionResult.stdout && (
+                  <pre className="mt-2 p-2 bg-gray-200 dark:bg-slate-600 rounded">
+                    {executionResult.stdout}
+                  </pre>
+                )}
+                {executionResult.stderr && (
+                  <pre className="mt-2 p-2 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded">
+                    {executionResult.line ? `Error at line ${executionResult.line}:\n` : ""}
+                    {executionResult.stderr}
+                  </pre>
+                )}
+              </div>
+            )}
+          </motion.section>
+
           {/* Navigation Buttons */}
           <motion.div
-            className="flex justify-between mt-8"
+            className="flex justify-between mt-6"
             variants={sectionVariants}
             initial="hidden"
             animate="visible"

@@ -27,14 +27,14 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case "Beginner":
-        return "bg-gradient-to-r from-green-500 to-green-600 dark:from-green-700 dark:to-green-800";
-      case "Intermediate":
-        return "bg-gradient-to-r from-yellow-500 to-yellow-600 dark:from-yellow-700 dark:to-yellow-800";
-      case "Advanced":
-        return "bg-gradient-to-r from-red-500 to-red-600 dark:from-red-700 dark:to-red-800";
+      case "Easy":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case "Medium":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+      case "Hard":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
       default:
-        return "bg-gradient-to-r from-gray-500 to-gray-600 dark:from-gray-700 dark:to-gray-800";
+        return "bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-200";
     }
   };
 
@@ -168,17 +168,83 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
     }
   }, [id, status, isTagged]);
 
+  // Animation variants
+  const sectionVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+  };
+
+  // Enhanced Structured Data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: frontmatter.title || "System Design Guide",
+    description: `Comprehensive system design guide for ${frontmatter.title || "Untitled System Design Question"}, covering microservices, scalability, caching, and architecture patterns.`,
+    keywords: `system design, ${frontmatter.title}, ${frontmatter.difficulty || "system architecture"}, ${frontmatter.tags.join(", ")}, microservices, scalability, caching, load balancing`,
+    author: {
+      "@type": "Organization",
+      name: "LeetcodeSolve",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "LeetcodeSolve",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://leetcodesolve.vercel.app/logo.png",
+        width: 150,
+        height: 50,
+      },
+    },
+    datePublished: frontmatter.date || new Date().toISOString(),
+    dateModified: new Date().toISOString(),
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `https://leetcodesolve.vercel.app/system-design/${id}`,
+    },
+    image: [
+      "https://leetcodesolve.vercel.app/og-image.jpg",
+      `https://leetcodesolve.vercel.app/system-design-${id}-guide.png`,
+    ],
+    breadcrumb: {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Home",
+          item: "https://leetcodesolve.vercel.app/",
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "System Design",
+          item: "https://leetcodesolve.vercel.app/system-design",
+        },
+        {
+          "@type": "ListItem",
+          position: 3,
+          name: frontmatter.title,
+          item: `https://leetcodesolve.vercel.app/system-design/${id}`,
+        },
+      ],
+    },
+  };
+
   return (
     <Layout
       title={`${frontmatter.title} | LeetcodeSolve`}
-      description={`Detailed system design guide for ${frontmatter.title}, covering microservices, caching, load balancing, and more.`}
+      description={`Master system design for ${frontmatter.title || "Untitled System Design Question"} with a detailed guide on microservices, scalability, and architecture.`}
       isLoginModalOpen={isLoginModalOpen}
       setIsLoginModalOpen={setIsLoginModalOpen}
     >
       <Head>
         <meta
           name="keywords"
-          content={`system design, ${frontmatter.title}, ${frontmatter.difficulty}, ${frontmatter.tags.join(", ")}, microservices, caching, scalability`}
+          content={`system design, ${frontmatter.title}, ${frontmatter.difficulty || "system architecture"}, ${frontmatter.tags.join(", ")}, microservices, scalability, caching, load balancing, system design interview`}
+        />
+        <meta
+          name="description"
+          content={`Learn system design for ${frontmatter.title || "Untitled System Design Question"} with a comprehensive guide on architecture, microservices, and scalability.`}
         />
         <meta name="author" content="LeetcodeSolve Team" />
         <meta name="robots" content="index, follow" />
@@ -189,7 +255,7 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
         />
         <meta
           property="og:description"
-          content={`Learn how to design ${frontmatter.title} with a comprehensive guide on architecture, microservices, and scalability.`}
+          content={`Explore system design for ${frontmatter.title || "Untitled System Design Question"} with detailed architecture, microservices, and scalability strategies.`}
         />
         <meta property="og:type" content="article" />
         <meta
@@ -198,8 +264,13 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
         />
         <meta
           property="og:image"
-          content="https://leetcodesolve.vercel.app/og-image.jpg"
+          content={`https://leetcodesolve.vercel.app/system-design-${id}-guide.png`}
         />
+        <meta
+          property="og:image:alt"
+          content={`System Design Guide for ${frontmatter.title}`}
+        />
+        <meta property="og:site_name" content="LeetcodeSolve" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta
           name="twitter:title"
@@ -207,49 +278,48 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
         />
         <meta
           name="twitter:description"
-          content={`Explore the system design of ${frontmatter.title} with detailed architecture and implementation.`}
+          content={`Master system design for ${frontmatter.title || "Untitled System Design Question"} with expert architecture and scalability insights.`}
         />
         <meta
           name="twitter:image"
-          content="https://leetcodesolve.vercel.app/twitter-image.jpg"
+          content={`https://leetcodesolve.vercel.app/system-design-${id}-guide.png`}
         />
+        <meta
+          name="twitter:image:alt"
+          content={`System Design Guide for ${frontmatter.title}`}
+        />
+        <meta name="twitter:creator" content="@LeetcodeSolve" />
         <link
           rel="canonical"
           href={`https://leetcodesolve.vercel.app/system-design/${id}`}
         />
+        <link rel="sitemap" href="/sitemap.xml" />
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="theme-color" content="#4f46e5" />
+        <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="google-site-verification" content="YOUR_GOOGLE_VERIFICATION_CODE" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: DOMPurify.sanitize(
-              JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "Article",
-                headline: frontmatter.title,
-                description: `Detailed system design guide for ${frontmatter.title}.`,
-                keywords: frontmatter.tags.join(", "),
-                author: {
-                  "@type": "Organization",
-                  "name": "LeetcodeSolve Team",
-                },
-                datePublished: frontmatter.date || "2025-04-16",
-                mainEntityOfPage: {
-                  "@type": "WebPage",
-                  "@id": `https://leetcodesolve.vercel.app/system-design/${id}`,
-                },
-              })
-            ),
+            __html: DOMPurify.sanitize(JSON.stringify(structuredData)),
           }}
         />
       </Head>
       <Toaster />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
           {/* Breadcrumb */}
-          <nav className="mb-6">
+          <motion.nav
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+            className="mb-6"
+          >
             <Link
               href="/system-design"
               className="flex items-center text-indigo-600 dark:text-indigo-400 hover:underline text-sm font-medium"
@@ -258,21 +328,28 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
               <ChevronLeftIcon className="w-4 h-4 mr-1" />
               Back to System Design Questions
             </Link>
-          </nav>
+          </motion.nav>
 
           {/* Article Header */}
-          <header className="mb-8">
+          <motion.header
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+            className="mb-8 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 sm:p-8"
+          >
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-6">
               {frontmatter.title}
             </h1>
             <div className="flex flex-wrap items-center gap-4">
-              <span
-                className={`px-4 py-2 rounded-full text-sm font-semibold text-white ${getDifficultyColor(
+              <button
+                onClick={() => router.push(`/system-design?difficulty=${frontmatter.difficulty}`)}
+                className={`px-4 py-2 rounded-full text-sm font-semibold ${getDifficultyColor(
                   frontmatter.difficulty
-                )} shadow-md`}
+                )} cursor-pointer hover:scale-105 transition-transform duration-200`}
+                aria-label={`Filter by ${frontmatter.difficulty} difficulty`}
               >
                 {frontmatter.difficulty}
-              </span>
+              </button>
               {frontmatter.tags.map((tag) => (
                 <Link
                   key={tag}
@@ -286,38 +363,44 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
               <motion.button
                 onClick={handleMarkSolved}
                 disabled={isSolving}
-                className={`flex items-center px-4 py-2 rounded-lg shadow-md transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                className={`flex items-center px-4 py-2 rounded-lg shadow-md transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 ${
                   isSolved
-                    ? "bg-green-500 text-white hover:bg-green-600"
-                    : "bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-800 dark:to-indigo-900 text-white hover:scale-105"
-                } ${isSolving ? "opacity-50 cursor-not-allowed" : ""}`}
+                    ? "bg-gradient-to-r from-green-600 to-green-700 dark:from-green-800 dark:to-green-900 text-white"
+                    : "bg-gradient-to-r from-gray-600 to-gray-700 dark:from-gray-800 dark:to-gray-900 text-white"
+                } hover:scale-105 disabled:opacity-50`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 aria-label={isSolved ? "Unmark as solved" : "Mark as solved"}
               >
                 <CheckCircleIcon className="w-5 h-5 mr-2" />
-                {isSolving ? "Processing..." : isSolved ? "Unmark Solved" : "Mark as Solved"}
+                {isSolving ? "Processing..." : "Solved"}
               </motion.button>
               <motion.button
                 onClick={handleLikeTag}
                 disabled={isTagging}
                 className={`flex items-center px-4 py-2 rounded-lg shadow-md transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-pink-500 ${
                   isTagged
-                    ? "bg-green-500 text-white hover:bg-green-600"
-                    : "bg-gradient-to-r from-pink-600 to-pink-700 dark:from-pink-800 dark:to-pink-900 text-white hover:scale-105"
-                } ${isTagging ? "opacity-50 cursor-not-allowed" : ""}`}
+                    ? "bg-gradient-to-r from-pink-600 to-pink-700 dark:from-pink-800 dark:to-pink-900 text-white"
+                    : "bg-gradient-to-r from-gray-600 to-gray-700 dark:from-gray-800 dark:to-gray-900 text-white"
+                } hover:scale-105 disabled:opacity-50`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 aria-label={isTagged ? "Untag article" : "Tag article"}
               >
                 <HeartIcon className="w-5 h-5 mr-2" />
-                {isTagging ? "Processing..." : isTagged ? "Untag" : "Tag"}
+                {isTagging ? "Processing..." : "Tag"}
               </motion.button>
             </div>
-          </header>
+          </motion.header>
 
           {/* Article Content and Sidebar */}
-          <div className="flex flex-col lg:flex-row gap-8">
+          <motion.div
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.2 }}
+            className="flex flex-col lg:flex-row gap-8"
+          >
             <article className="lg:w-3/4 prose dark:prose-invert max-w-none bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-8">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -395,7 +478,7 @@ export default function SystemDesignArticle({ frontmatter, content, relatedQuest
                 </ul>
               </motion.div>
             </aside>
-          </div>
+          </motion.div>
         </motion.div>
       </main>
     </Layout>

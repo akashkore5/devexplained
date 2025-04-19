@@ -97,7 +97,7 @@ export default function SystemDesign({ initialViewMode = "table" }) {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  },[]);
 
   // Handle resize for view mode
   useEffect(() => {
@@ -233,6 +233,12 @@ export default function SystemDesign({ initialViewMode = "table" }) {
       case "Intermediate":
         return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 hover:bg-yellow-200 dark:hover:bg-yellow-800";
       case "Advanced":
+        return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-200 hover:bg-red-200 dark:hover:bg-red-800";
+      case "Easy":
+        return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 hover:bg-green-200 dark:hover:bg-green-800";
+      case "Medium":
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 hover:bg-yellow-200 dark:hover:bg-yellow-800";
+      case "Hard":
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-200 hover:bg-red-200 dark:hover:bg-red-800";
       default:
         return "bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200 border-gray-200";
@@ -419,7 +425,7 @@ export default function SystemDesign({ initialViewMode = "table" }) {
         />
       </Head>
       <Toaster />
-      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="flex-grow max-w-7xl mx-auto px-2 sm:px-6 lg:px-0 py-0">
         {/* Filters Section */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -472,7 +478,7 @@ export default function SystemDesign({ initialViewMode = "table" }) {
                       className={`w-4 h-4 text-gray-500 dark:text-gray-400 transform transition-transform ${isDifficultyOpen ? "rotate-180" : ""}`}
                       fill="none"
                       stroke="currentColor"
-                      viewBox="0 24"
+                      viewBox="0 0 24 24"
                     >
                       <path
                         strokeLinecap="round"
@@ -763,7 +769,11 @@ export default function SystemDesign({ initialViewMode = "table" }) {
                               e.stopPropagation();
                               handleMarkSolved(id, solvedQuestions.includes(Number(id)));
                             }}
-                            className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-800 dark:to-indigo-900 text-white rounded-lg shadow-md hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className={`flex items-center px-4 py-2 rounded-lg shadow-md text-white transition-transform duration-200 ${
+                              solvedQuestions.includes(Number(id))
+                                ? "bg-gradient-to-r from-green-600 to-green-700 dark:from-green-800 dark:to-green-900"
+                                : "bg-gradient-to-r from-gray-600 to-gray-700 dark:from-gray-800 dark:to-gray-900"
+                            }`}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             aria-label={
@@ -773,14 +783,18 @@ export default function SystemDesign({ initialViewMode = "table" }) {
                             }
                           >
                             <CheckCircleIcon className="w-5 h-5 mr-2" />
-                            {solvedQuestions.includes(Number(id)) ? "Unmark Solved" : "Mark as Solved"}
+                            Solved
                           </motion.button>
                           <motion.button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleTagQuestion(id, taggedQuestions.includes(Number(id)));
                             }}
-                            className="flex items-center px-4 py-2 bg-gradient-to-r from-pink-600 to-pink-700 dark:from-pink-800 dark:to-pink-900 text-white rounded-lg shadow-md hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                            className={`flex items-center px-4 py-2 rounded-lg shadow-md text-white transition-transform duration-200 ${
+                              taggedQuestions.includes(Number(id))
+                                ? "bg-gradient-to-r from-pink-600 to-pink-700 dark:from-pink-800 dark:to-pink-900"
+                                : "bg-gradient-to-r from-gray-600 to-gray-700 dark:from-gray-800 dark:to-gray-900"
+                            }`}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             aria-label={
@@ -788,7 +802,7 @@ export default function SystemDesign({ initialViewMode = "table" }) {
                             }
                           >
                             <HeartIcon className="w-5 h-5 mr-2" />
-                            {taggedQuestions.includes(Number(id)) ? "Untag" : "Tag"}
+                            Tag
                           </motion.button>
                         </div>
                       </div>
@@ -920,10 +934,12 @@ export default function SystemDesign({ initialViewMode = "table" }) {
                             </td>
                             <td className="px-4 py-4">
                               <div className="flex flex-wrap gap-2 sm:gap-1">
-                                <Link
-                                  href={`/system-design?difficulty=${encodeURIComponent(
-                                    question.difficulty
-                                  )}`}
+                                <button
+                                  onClick={() => {
+                                    setDifficulty(question.difficulty);
+                                    setPage(1);
+                                    updateQuery({ ...router.query, difficulty: question.difficulty });
+                                  }}
                                   className={`inline-block text-center px-1.5 py-1 rounded-lg text-xs font-medium border transition-all duration-200 truncate max-w-[80px] sm:max-w-[60px] overflow-hidden text-overflow-ellipsis whitespace-nowrap ${getDifficultyColor(
                                     question.difficulty
                                   )}`}
@@ -931,7 +947,7 @@ export default function SystemDesign({ initialViewMode = "table" }) {
                                   aria-label={`Filter by ${question.difficulty} difficulty`}
                                 >
                                   {question.difficulty}
-                                </Link>
+                                </button>
                               </div>
                             </td>
                             <td className="px-4 py-4 min-w-[150px] max-w-[250px]">
@@ -969,8 +985,8 @@ export default function SystemDesign({ initialViewMode = "table" }) {
                                 }
                                 className={`p-1 ${
                                   taggedQuestions.includes(Number(question.id))
-                                    ? "text-green-500"
-                                    : "text-gray-400"
+                                    ? "text-pink-500"
+                                    : "text-gray-500"
                                 }`}
                                 aria-label={
                                   taggedQuestions.includes(Number(question.id))
@@ -1008,7 +1024,7 @@ export default function SystemDesign({ initialViewMode = "table" }) {
               transition={{ delay: 0.3, duration: 0.5 }}
               className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden sticky top-6 max-h-[calc(100vh-3rem)]"
             >
-              <div className="sticky top-0 bg-white dark:bg-slate-800 z-10 px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+              <div className="sticky top-0 bg-white dark:bg-slate-800 z-10 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
                   Popular Topics
                 </h3>
@@ -1060,7 +1076,7 @@ export default function SystemDesign({ initialViewMode = "table" }) {
               <button
                 onClick={() => handlePageChange(page - 1)}
                 disabled={page === 1}
-                className="p-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200 shadow-sm"
+                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200 shadow-sm"
                 aria-label="Previous page"
               >
                 <ChevronLeftIcon className="w-5 h-5" />
@@ -1072,10 +1088,10 @@ export default function SystemDesign({ initialViewMode = "table" }) {
                     <button
                       key={p}
                       onClick={() => handlePageChange(p)}
-                      className={`px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-700 text-sm font-medium transition-all duration-200 shadow-sm ${
+                      className={`px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium transition-all duration-200 shadow-sm ${
                         p === page
                           ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+                          : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
                       }`}
                     >
                       {p}
@@ -1085,7 +1101,7 @@ export default function SystemDesign({ initialViewMode = "table" }) {
               <button
                 onClick={() => handlePageChange(page + 1)}
                 disabled={page === totalPages}
-                className="p-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200 shadow-sm"
+                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200 shadow-sm"
                 aria-label="Next page"
               >
                 <ChevronRightIcon className="w-5 h-5" />
@@ -1102,7 +1118,7 @@ export default function SystemDesign({ initialViewMode = "table" }) {
             transition={{ delay: 0.3, duration: 0.5 }}
             className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden"
           >
-            <div className="sticky top-0 bg-white dark:bg-slate-800 z-10 px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+            <div className="sticky top-0 bg-white dark:bg-slate-800 z-10 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
                 Popular Topics
               </h3>
@@ -1136,4 +1152,15 @@ export default function SystemDesign({ initialViewMode = "table" }) {
       </main>
     </Layout>
   );
+}
+
+export async function getServerSideProps(context) {
+  const { req } = context;
+  const userAgent = req.headers["user-agent"] || "";
+  const isMobile = /mobile/i.test(userAgent);
+  return {
+    props: {
+      initialViewMode: isMobile ? "list" : "table",
+    },
+  };
 }
